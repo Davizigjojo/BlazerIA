@@ -1,0 +1,13 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "fullscreen",
+  "name": "BlazerIA",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "BlazerIA",
+  "start_url": "https://blazeriachat.davirediske.workers.dev/",
+  "theme_color": "#ffffff",
+  "description": "Site de IA",
+  "lang": "pt"
+}
