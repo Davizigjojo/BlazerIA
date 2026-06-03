@@ -236,20 +236,12 @@
             <button class="menu-btn" onclick="toggleMenu(true)">☰</button>
             <span id="chat-title">BlazerIA</span>
         </div>
-        <select id="model-select">
-            <option value="fusion">✨ Agente Blazer (OpenRouter)</option>
-            <option value="nvidia-fusion">🌌 Agente Blazer NVIDIA (Comitê Fixo)</option>
-            
-            <option value="groq/llama-3.1-8b-instant">⚡ Groq: Llama 3.1 8B (Instantâneo)</option>
-            
-            <option value="nvidia-direct/z-ai/glm-5.1">🟢 NVIDIA: GLM 5.1 (Direto)</option>
-            <option value="nvidia-direct/meta/llama-3.2-90b-vision-instruct">🟢 NVIDIA: Llama 3.2 90B Vision Instruct(Direto)</option>
-            <option value="nvidia-direct/minimaxai/minimax-m2.7">🟢 NVIDIA: MiniMax M2.7 (Direto)</option>
-            <option value="nvidia-direct/moonshotai/kimi-k2.6">🟢 NVIDIA: Kimi K2.6 (Direto)</option>
-            <option value="nvidia-direct/deepseek-ai/deepseek-v4-flash">🟢 NVIDIA: DeepSeek V4 flash (Direto)</option>
-            <option value="nvidia-direct/qwen/qwen3-coder-480b-a35b-instruct">🟢 NVIDIA: Qwen3 Coder 480B a35b (Direto)</option>
-            
-            <option value="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free">Nemotron 3 Omni (Foto/Vídeo/Áudio/Texto)</option>
+        <select id="model-select" class="select-style">
+    <option value="fusion">Blazer Fusion ✨ (Comitê de IAs Grátis)</option>
+    <option value="nvidia-fusion">Blazer Fusion NVIDIA 🌌 (Fila Assíncrona)</option>
+
+    <optgroup label="OpenRouter (Comerciais/Free)">
+        <option value="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free">Nemotron 3 Omni (Foto/Vídeo/Áudio/Texto)</option>
             <option value="openai/gpt-oss-120b:free">gpt-oss-120b (Texto)</option>
             <option value="nvidia/nemotron-3-super-120b-a12b:free">NVIDIA Nemotron 3 Super (Texto)</option>
             <option value="google/gemma-4-31b-it:free">Gemma 4 31B (Texto/Vídeo/Foto)</option>
@@ -261,7 +253,28 @@
             <option value="moonshotai/kimi-k2.6:free">Kimi K2.6 (Texto/Foto)</option>
             <option value="nousresearch/hermes-3-llama-3.1-405b:free">Hermes 3 Llhama 3.1 405B (Texto)</option>
             <option value="openrouter/free">Modelo aleatório gratuito</option>
-        </select>
+    </optgroup>
+
+    <optgroup label="Groq LPU ⚡ (Super Velocidade)">
+        <option value="groq/llama-3.1-8b-instant">⚡ Groq: Llama 3.1 8B (Instantâneo)</option>
+    </optgroup>
+
+    <optgroup label="NVIDIA NIM 🟢 (Alta Performance)">
+        <option value="nvidia-direct/z-ai/glm-5.1">🟢 NVIDIA: GLM 5.1 (Direto)</option>
+            <option value="nvidia-direct/meta/llama-3.2-90b-vision-instruct">🟢 NVIDIA: Llama 3.2 90B Vision Instruct(Direto)</option>
+            <option value="nvidia-direct/minimaxai/minimax-m2.7">🟢 NVIDIA: MiniMax M2.7 (Direto)</option>
+            <option value="nvidia-direct/moonshotai/kimi-k2.6">🟢 NVIDIA: Kimi K2.6 (Direto)</option>
+            <option value="nvidia-direct/deepseek-ai/deepseek-v4-flash">🟢 NVIDIA: DeepSeek V4 flash (Direto)</option>
+            <option value="nvidia-direct/qwen/qwen3-coder-480b-a35b-instruct">🟢 NVIDIA: Qwen3 Coder 480B a35b (Direto)</option>
+    </optgroup>
+
+                <optgroup label="Hugging Face 🤗 (Modelos Leves Serverless)">
+                <option value="hf/LiquidAI/LFM2.5-8B-A1B">LiquidAI LFM 2.5 8B (Nova Arquitetura! 🔥)</option>
+                <option value="hf/meta-llama/Llama-3.1-8B-Instruct">Llama 3.1 8B Instruct</option>
+                <option value="hf/dphn/Dolphin-X1-Trinity-Nano">Dolphin X1 Trinity Nano (Sem Filtros 🐬)</option>
+                <option value="hf/meta-llama/Llama-3.2-3B-Instruct">Llama 3.2 3B Instruct (Ultra Rápido)</option>
+            </optgroup>
+</select>
         <select id="fusion-power-select" style="display:none; margin-left:10px;">
             <option value="low">⚡ Baixo Raciocínio (Rápido)</option>
             <option value="medium" selected>⚖️ Médio Raciocínio (Balanceado)</option>
@@ -571,17 +584,17 @@
             }
 
             const payload = {
-                model: modelToUse,
-                messages: memoriaCurta,
-                turnstileToken: turnstileToken,
-                apiIndex: localStorage.getItem('blazeria_api_index') || '0'
-            };
+            model: modelSelect.value, // Mantém a string pura ('fusion' ou 'nvidia-fusion') para o Worker decidir
+            messages: memoriaCurta,
+            turnstileToken: turnstileToken,
+            apiIndex: localStorage.getItem('blazeria_api_index') || '0'
+        };
 
-            if (modelSelect.value === "nvidia-fusion") {
-                payload.model = "nvidia-fusion";
-            } else if (fusionPower) {
-                payload.fusionPower = fusionPower;
-            }
+        if (modelSelect.value === "nvidia-fusion") {
+            payload.model = "nvidia-fusion";
+        } else if (fusionPower) {
+            payload.fusionPower = fusionPower;
+        }
 
             const res = await fetch(WORKER_URL, {
                 method: 'POST',
