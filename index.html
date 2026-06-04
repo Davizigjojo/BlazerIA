@@ -3,18 +3,38 @@
 <head>
     <meta charset="UTF-8">
 <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
-<link rel="stylesheet" href="[https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css](https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 
-<script src="[https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js](https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js)"></script>
-<script src="[https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js](https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js)"></script>
-<link href="[https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css](https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css)" rel="stylesheet" />
-<link href="[https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css](https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css)" rel="stylesheet" />
-<script src="[https://cdn.jsdelivr.net/npm/marked/marked.min.js](https://cdn.jsdelivr.net/npm/marked/marked.min.js)"></script>
-<script src="[https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js](https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js)"></script>
-<script src="[https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js](https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js)"></script>
-<script src="[https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js](https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js)"></script>
-<script src="[https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js](https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js)"></script>
-<script src="[https://challenges.cloudflare.com/turnstile/v0/api.js](https://challenges.cloudflare.com/turnstile/v0/api.js)" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+<!-- Script do Turnstile Configurado para Inicialização Explícita Contornando Bloqueadores -->
+<script>
+    window.onloadTurnstileCallback = function () {
+        try {
+            if (window.turnstile) {
+                turnstile.render('#turnstile-container', {
+                    sitekey: '0x4AAAAAADQlqTcTMfJMejbo',
+                    callback: onTurnstileSuccess,
+                    'error-callback': onTurnstileError,
+                    'expired-callback': onTurnstileExpired
+                });
+                document.getElementById('turnstile-status-text').style.display = 'none';
+            }
+        } catch (e) {
+            console.error("Erro na inicialização do Turnstile: ", e);
+        }
+    };
+</script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback&render=explicit" async defer></script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BlazerIA - Memória Ativa</title>
     <style>
@@ -113,6 +133,36 @@
         .bot-msg pre, .bot-msg table { overflow-x: auto; max-width: 100%; }
 
         footer { padding: 15px; background: var(--bg-card); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+        
+        /* Layout e Posicionamento do Turnstile */
+        #turnstile-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+        #turnstile-container {
+            min-height: 65px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .adblock-warning {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px dashed var(--danger);
+            color: #fca5a5;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            text-align: center;
+            max-width: 100%;
+            line-height: 1.4;
+            display: none;
+            margin-top: 4px;
+        }
+
         .input-row { display: flex; gap: 10px; align-items: flex-end; }
         
         .attach-btn {
@@ -213,7 +263,7 @@
                 📥 Baixar Aplicativo (APK)
             </a>
             
-            <a href="[https://blazerpingtest.davirediske.workers.dev](https://blazerpingtest.davirediske.workers.dev)" target="_blank" style="
+            <a href="https://blazerpingtest.davirediske.workers.dev" target="_blank" style="
                 background: #8b5cf6; 
                 color: white; 
                 text-decoration: none; 
@@ -293,7 +343,15 @@
         <div id="file-preview"></div>
         <div id="typing" style="display:none; color: var(--accent); font-size: 0.8rem; font-weight: bold; padding: 6px; border-left: 3px solid var(--accent); background: rgba(59, 130, 246, 0.1); border-radius: 6px;">Processando resposta...</div>
         
-        <div id="turnstile-container" class="cf-turnstile" data-sitekey="0x4AAAAAADQlqTcTMfJMejbo" data-callback="onTurnstileSuccess"></div>
+        <!-- Wrapper Unificado do Turnstile + Detector de Bloqueio -->
+        <div id="turnstile-wrapper">
+            <span id="turnstile-status-text" style="font-size: 0.75rem; color: var(--text-dim);">Carregando verificação de segurança...</span>
+            <div id="turnstile-container"></div>
+            <div id="adblock-banner" class="adblock-warning">
+                ⚠️ **Bloqueador de Anúncios Detectado (Opera AdBlock)!**<br>
+                O validador da Cloudflare foi impedido de carregar. Desative o "Bloquear anúncios" nas configurações do Opera para poder conversar.
+            </div>
+        </div>
 
         <div class="input-row">
             <label for="file-input" class="attach-btn" title="Anexar Arquivo">📎</label>
@@ -305,13 +363,36 @@
 </div>
 
 <script>
-    const WORKER_URL = "[https://blazeria.davirediske.workers.dev](https://blazeria.davirediske.workers.dev)";
+    const WORKER_URL = "https://blazeria.davirediske.workers.dev";
     let chats = JSON.parse(localStorage.getItem('blazeria_chats')) || [];
     let currentId = null;
     let turnstileToken = null;
 
+    // Monitor do Carregamento do Turnstile contra Bloqueadores
+    setTimeout(() => {
+        if (!window.turnstile || !turnstileToken) {
+            const container = document.getElementById('turnstile-container');
+            // Se o Turnstile estiver vazio após 4 segundos, é certeza que o Opera ou AdBlock bloqueou
+            if (container && container.children.length === 0) {
+                document.getElementById('adblock-banner').style.display = 'block';
+                document.getElementById('turnstile-status-text').style.innerText = "❌ Bloqueado pelo Navegador";
+            }
+        }
+    }, 4000);
+
     function onTurnstileSuccess(token) {
         turnstileToken = token;
+        document.getElementById('adblock-banner').style.display = 'none';
+        document.getElementById('turnstile-status-text').style.display = 'none';
+    }
+
+    function onTurnstileError() {
+        document.getElementById('turnstile-status-text').innerText = "⚠️ Erro no carregamento. Tente recarregar a página.";
+    }
+
+    function onTurnstileExpired() {
+        turnstileToken = null;
+        if(window.turnstile) turnstile.reset();
     }
 
     // Inicialização do controle de API Keys
@@ -556,7 +637,7 @@
         }
 
         if (!turnstileToken) {
-            alert("A verificação de segurança ainda não foi concluída. Por favor, aguarde um instante e tente novamente.");
+            alert("A verificação de segurança não pôde ser carregada ou concluída. Se você usa o Opera, vá nas configurações dele, desative temporariamente a opção 'Bloquear Anúncios' e recarregue o site.");
             document.getElementById('typing').style.display = 'none';
             return;
         }
@@ -620,7 +701,7 @@
                 messages: memoriaCurta,
                 turnstileToken: turnstileToken,
                 apiIndex: localStorage.getItem('blazeria_api_index') || '0',
-                hfApiIndex: localStorage.getItem('blazeria_hf_api_index') || '0' // Envia o índice da chave Hugging Face
+                hfApiIndex: localStorage.getItem('blazeria_hf_api_index') || '0'
             };
 
             if (modelSelect.value === "nvidia-fusion") {
