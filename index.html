@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -15,8 +16,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 
+<!-- Script Oficial do Google Identity Services para Login -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
+<!-- Script do Turnstile -->
 <script>
     window.onloadTurnstileCallback = function () {
         try {
@@ -167,6 +170,7 @@
 <div id="sidebar">
     <div class="sidebar-header">
         
+        <!-- ÁREA DE LOGIN (Renderiza o botão ou o perfil se logado) -->
         <div id="google-login-wrapper" style="display: flex; justify-content: center; margin-bottom: 10px;">
             <div id="buttonDiv"></div>
         </div>
@@ -181,6 +185,7 @@
         <button class="new-chat-btn" onclick="createNewChat()">+ Novo Estudo</button>
         <button class="terminal-toggle-btn" onclick="toggleTerminalMode()" style="margin-bottom: 10px;">>_ Modo Terminal</button>
         
+        <!-- Botões de Alternação de APIs das Contas -->
         <button id="or-key-btn" class="terminal-toggle-btn" onclick="toggleApiKey()" style="background: #475569; margin-bottom: 10px; font-weight: bold;"></button>
         <button id="hf-key-btn" class="terminal-toggle-btn" onclick="toggleHfApiKey()" style="background: #0284c7; margin-bottom: 10px; font-weight: bold;"></button>
 
@@ -275,8 +280,8 @@
     const WORKER_URL = "https://blazeria.davirediske.workers.dev";
     
     // ==========================================
-    // COLE AQUI SEU CLIENT ID DO GOOGLE:
-    const GOOGLE_CLIENT_ID = "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";
+    // SEU CLIENT ID DO GOOGLE JÁ VINCULADO E EXTRAÍDO DO VÍDEO:
+    const GOOGLE_CLIENT_ID = "632093910027-j47i1amr3cri05qprn6pear8dqkbq6c7.apps.googleusercontent.com";
     // ==========================================
 
     let chats = [];
@@ -349,7 +354,7 @@
         }
     }
 
-    function executarLogout() {
+    function ejecutarLogout() {
         localStorage.removeItem('blazeria_session_token');
         localStorage.removeItem('blazeria_user_name');
         localStorage.removeItem('blazeria_user_email');
