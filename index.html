@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+<!-- Script Oficial do Google Identity Services para Login -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<!-- Script do Turnstile -->
+<script>
+    window.onloadTurnstileCallback = function () {
+        try {
+            if (window.turnstile) {
+                turnstile.render('#turnstile-container', {
+                    sitekey: '0x4AAAAAADQlqTcTMfJMejbo',
+                    callback: onTurnstileSuccess,
+                    'error-callback': onTurnstileError,
+                    'expired-callback': onTurnstileExpired
+                });
+                document.getElementById('turnstile-status-text').style.display = 'none';
+            }
+        } catch (e) {
+            console.error("Erro na inicialização do Turnstile: ", e);
+        }
+    };
+</script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback&render=explicit" async defer></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BlazerIA - Memória Ativa</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --accent: #3b82f6;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: #334155;
+            --terminal-green: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg-dark); color: var(--text); display: flex; height: 100vh; height: 100dvh; overflow: hidden; transition: 0.2s; }
+
+        body.terminal-mode {
+            background: #000 !important;
+            font-family: 'Courier New', Courier, monospace !important;
+        }
+        body.terminal-mode * { font-family: 'Courier New', Courier, monospace !important; }
+        body.terminal-mode .msg { 
+            background: transparent !important; 
+            border: none !important; 
+            color: var(--terminal-green) !important;
+            padding: 5px 0 !important;
+            max-width: 100% !important;
+        }
+        body.terminal-mode .user-msg::before { content: "usuário: "; font-weight: bold; color: #fff; }
+        body.terminal-mode .bot-msg::before { content: "IA: "; font-weight: bold; color: var(--accent); }
+        body.terminal-mode header, body.terminal-mode footer, body.terminal-mode #sidebar {
+            background: #000 !important;
+            border-color: #333 !important;
+        }
+
+        #sidebar {
+            width: 280px; background: var(--bg-card); border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; transition: 0.3s;
+            position: fixed; height: 100%; z-index: 100; transform: translateX(-100%);
+        }
+        #sidebar.active { transform: translateX(0); }
+        
+        /* Sidebar layout de alta eficiência de espaço */
+        .sidebar-header { 
+            padding: 15px; 
+            border-bottom: 1px solid var(--border); 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px;
+            flex-shrink: 0; /* Garante que o header nunca encolha */
+        }
+        
+        /* Botão para abrir/fechar sanfona de autenticação */
+        .auth-accordion-trigger {
+            background: #1e293b;
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 8px;
+            width: 100%;
+            font-weight: bold;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: 0.2s;
+        }
+        .auth-accordion-trigger:hover { background: #334155; }
+        
+        /* Sanfona usando max-height e opacidade para não quebrar renderização do Google */
+        .auth-accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 0 5px;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            margin-top: 0;
+            transition: max-height 0.3s ease-out, opacity 0.2s ease-out, padding 0.3s ease-out, margin 0.3s ease-out;
+        }
+        .auth-accordion-content.active {
+            max-height: 400px; /* Espaço completo para o botão Google + Form Local */
+            opacity: 1;
+            padding: 10px 5px;
+            margin-top: 4px;
+        }
+
+        /* Box de perfil do usuário logado */
+        .user-profile-box {
+            background: rgba(34, 197, 94, 0.1); 
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            padding: 10px; 
+            border-radius: 8px; 
+            display: flex;
+            align-items: center; 
+            justify-content: space-between;
+            gap: 6px;
+        }
+        .logout-btn {
+            background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid var(--danger);
+            padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;
+        }
+        .logout-btn:hover { background: var(--danger); color: white; }
+
+        /* Estilos do formulário de login local */
+        .local-auth-container {
+            background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border);
+            border-radius: 8px; padding: 10px; width: 100%;
+        }
+        .local-auth-title {
+            font-size: 0.75rem; font-weight: bold; color: var(--text-dim); text-align: center;
+            margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 5px;
+        }
+        .local-auth-input {
+            width: 100%; background: var(--bg-dark); color: white; border: 1px solid var(--border);
+            padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; outline: none; margin-bottom: 6px;
+        }
+        .local-auth-input:focus { border-color: var(--accent); }
+        .local-auth-row { display: flex; gap: 6px; }
+        .local-auth-btn {
+            flex: 1; background: #334155; color: white; border: none; padding: 6px;
+            border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;
+        }
+        .local-auth-btn.primary { background: var(--accent); }
+        .local-auth-btn:hover { opacity: 0.9; }
+
+        .new-chat-btn {
+            background: var(--accent); color: white; border: none; padding: 12px;
+            border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer;
+        }
+        
+        .terminal-toggle-btn {
+            background: #334155; color: #cbd5e1; border: 1px solid var(--border);
+            padding: 8px; border-radius: 6px; width: 100%; cursor: pointer; font-size: 0.8rem;
+        }
+
+        /* Rolagem Isolada para Lista de Chats */
+        #chat-list { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 10px; 
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .chat-item {
+            padding: 12px; border-radius: 8px; margin-bottom: 5px; cursor: pointer;
+            font-size: 0.9rem; color: var(--text-dim);
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .chat-item:hover { background: rgba(255, 255, 255, 0.05); }
+        .chat-item.active { background: var(--border); border-left: 4px solid var(--accent); color: var(--text); }
+        
+        .chat-title-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-delete-btn {
+            background: none; border: none; cursor: pointer; font-size: 0.95rem;
+            opacity: 0.4; transition: 0.2s; padding: 2px 4px; border-radius: 4px;
+        }
+        .chat-item:hover .chat-delete-btn { opacity: 0.8; }
+        .chat-delete-btn:hover { opacity: 1 !important; background: rgba(239, 68, 68, 0.2); }
+
+        /* Rodapé de botões da barra lateral fixado embaixo */
+        .sidebar-footer-buttons {
+            padding: 10px 15px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex-shrink: 0; /* Garante que nunca colapse ou encolha */
+            background: #111a2e;
+        }
+
+        #main { flex: 1; display: flex; flex-direction: column; width: 100%; overflow: hidden; }
+        header { padding: 12px 15px; background: var(--bg-card); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+        .header-left { display: flex; align-items: center; gap: 15px; overflow: hidden; flex: 1; }
+        .menu-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        #chat-title { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+
+        #model-select { background: var(--bg-dark); color: white; border: 1px solid var(--border); padding: 8px; border-radius: 8px; font-size: 0.85rem; outline: none; max-width: 200px; }
+
+        #chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .msg { max-width: 90%; padding: 12px 16px; border-radius: 12px; line-height: 1.5; font-size: 0.95rem; overflow-wrap: break-word; }
+        .user-msg { align-self: flex-end; background: var(--accent); border-bottom-right-radius: 2px; white-space: pre-wrap; }
+        .bot-msg { align-self: flex-start; background: var(--bg-card); border: 1px solid var(--border); }
+        .bot-msg pre, .bot-msg table { overflow-x: auto; max-width: 100%; }
+
+        footer { padding: 15px; background: var(--bg-card); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+        
+        #turnstile-wrapper { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 5px; }
+        #turnstile-container { min-height: 65px; display: flex; justify-content: center; align-items: center; }
+        .adblock-warning { background: rgba(239, 68, 68, 0.15); border: 1px dashed var(--danger); color: #fca5a5; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; text-align: center; max-width: 100%; line-height: 1.4; display: none; margin-top: 4px; }
+
+        .input-row { display: flex; gap: 10px; align-items: flex-end; }
+        .attach-btn { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-dim); width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; flex-shrink: 0; }
+        textarea { flex: 1; background: var(--bg-dark); color: white; border: 1px solid var(--border); border-radius: 12px; padding: 12px; resize: none; outline: none; min-height: 45px; max-height: 120px; }
+        .send-btn { background: var(--accent); width: 45px; height: 45px; border-radius: 12px; border: none; color: white; cursor: pointer; flex-shrink: 0; font-size: 1.2rem;}
+        #file-preview { font-size: 0.8rem; color: var(--accent); display: none; padding-left: 5px; }
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; }
+
+        /* Estilos do sistema de notificação Toast customizado */
+        #custom-toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .custom-toast {
+            background: var(--bg-card);
+            border-left: 4px solid var(--accent);
+            color: var(--text);
+            padding: 12px 18px;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+            font-size: 0.85rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(120%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+            opacity: 0;
+            max-width: 320px;
+            pointer-events: auto;
+        }
+        .custom-toast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        .custom-toast.error { border-left-color: var(--danger); }
+        .custom-toast.success { border-left-color: var(--terminal-green); }
+        .custom-toast.warning { border-left-color: var(--warning); }
+
+        @media (min-width: 768px) { #sidebar { position: static; transform: none; } .menu-btn { display: none; } }
+        @media (max-width: 767px) {
+            header { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+            .header-left { width: 100%; justify-content: space-between; }
+            #model-select, #fusion-power-select { max-width: 100% !important; flex: 1; font-size: 0.8rem; padding: 6px; margin-left:0 !important;}
+            #chat-container { padding: 12px; gap: 12px; }
+            .msg { max-width: 95%; padding: 10px 14px; font-size: 0.92rem; }
+            footer { padding: 10px; }
+            .input-row { gap: 8px; }
+            textarea { padding: 10px; border-radius: 10px; font-size: 0.95rem; }
+            .attach-btn, .send-btn { width: 42px; height: 42px; border-radius: 10px; }
+            #custom-toast-container { right: 10px; left: 10px; top: 10px; }
+            .custom-toast { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="overlay" class="overlay" onclick="toggleMenu(false)"></div>
+
+<!-- Container global para as Toasts customizadas -->
+<div id="custom-toast-container"></div>
+
+<div id="sidebar">
+    <div class="sidebar-header">
+        
+        <!-- SANFONA DINÂMICA DE LOGIN -->
+        <div id="google-login-wrapper" style="display: flex; flex-direction: column; width: 100%;">
+            <button class="auth-accordion-trigger" onclick="toggleAuthAccordion()">
+                <span>👤 Entrar / Cadastrar</span>
+                <span id="accordion-arrow">▼</span>
+            </button>
+            
+            <div id="auth-accordion-container" class="auth-accordion-content">
+                <!-- ÁREA EXCLUSIVA DE LOGIN GOOGLE -->
+                <div id="buttonDiv" style="display: flex; justify-content: center; margin-bottom: 8px; min-height: 40px;"></div>
+                
+                <!-- FORMULÁRIO DE LOGIN LOCAL -->
+                <div id="local-auth-main" class="local-auth-container">
+                    <div class="local-auth-title">🔐 Login Local (Para a Escola)</div>
+                    <input type="text" id="local-nome-input" class="local-auth-input" placeholder="Seu Nome (Para Cadastro)" style="display: none;">
+                    <input type="email" id="local-email-input" class="local-auth-input" placeholder="Seu E-mail">
+                    <input type="password" id="local-senha-input" class="local-auth-input" placeholder="Sua Senha">
+                    <div class="local-auth-row">
+                        <!-- O CORRETO É executarLoginLocal() COM 'X' -->
+                        <button class="local-auth-btn primary" id="local-action-btn" onclick="executarLoginLocal()">Entrar</button>
+                        <button class="local-auth-btn" id="local-toggle-btn" onclick="toggleModoLocal()">Criar Conta</button>
+                    </div>
+                </div>
+
+                <!-- TELA DE VERIFICAÇÃO DE CÓDIGO DO E-MAIL -->
+                <div id="local-verify-container" class="local-auth-container" style="display: none;">
+                    <div class="local-auth-title">📩 Código Enviado!</div>
+                    <p style="font-size: 0.75rem; color: var(--text-dim); text-align: center; margin-bottom: 8px;">Verifique seu e-mail.</p>
+                    <input type="text" id="local-codigo-input" class="local-auth-input" placeholder="Código de 6 dígitos" maxlength="6" style="text-align: center; font-size: 1.2rem; letter-spacing: 4px;">
+                    <div class="local-auth-row">
+                        <button class="local-auth-btn primary" onclick="verificarCodigoRegistro()">Validar</button>
+                        <button class="local-auth-btn" onclick="cancelarVerificacao()">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Painel de Perfil -->
+        <div id="user-profile" class="user-profile-box" style="display: none;">
+            <div style="overflow: hidden; max-width: 170px;">
+                <strong id="user-display-name" style="color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">Usuário</strong>
+                <div style="font-size:0.7rem; color:var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="user-display-email">email@google.com</div>
+            </div>
+            <button class="logout-btn" onclick="executarLogout()">Sair</button>
+        </div>
+
+        <!-- Botão Criar Chat -->
+        <button class="new-chat-btn" onclick="createNewChat()">+ Novo Estudo</button>
+    </div>
+    
+    <!-- Lista de Chats -->
+    <div id="chat-list"></div>
+
+    <!-- Rodapé da Barra Lateral -->
+    <div class="sidebar-footer-buttons">
+        <button class="terminal-toggle-btn" onclick="toggleTerminalMode()">>_ Modo Terminal</button>
+        <button id="or-key-btn" class="terminal-toggle-btn" onclick="toggleApiKey()" style="background: #475569; font-weight: bold;"></button>
+        <button id="hf-key-btn" class="terminal-toggle-btn" onclick="toggleHfApiKey()" style="background: #0284c7; font-weight: bold;"></button>
+        <div style="display: flex; gap: 6px;">
+            <a href="blazeria.apk" download="BlazerIA.apk" style="background: #22c55e; color: white; text-decoration: none; padding: 6px; border-radius: 6px; flex: 1; display: block; text-align: center; font-weight: bold; font-size: 0.75rem; border: 1px solid #16a34a;">📥 APK App</a>
+            <a href="https://blazerpingtest.davirediske.workers.dev" target="_blank" style="background: #8b5cf6; color: white; text-decoration: none; padding: 6px; border-radius: 6px; flex: 1; display: block; text-align: center; font-weight: bold; font-size: 0.75rem; border: 1px solid #7c3aed;">⚡ PingTest</a>
+        </div>
+    </div>
+</div>
+
+<div id="main">
+    <header>
+        <div class="header-left">
+            <button class="menu-btn" onclick="toggleMenu(true)">☰</button>
+            <span id="chat-title">BlazerIA</span>
+        </div>
+        <select id="model-select" class="select-style">
+    <option value="fusion">Blazer Fusion ✨ (Comitê de IAs Grátis)</option>
+    <option value="nvidia-fusion">Blazer Fusion NVIDIA 🌌 (Fila Assíncrona)</option>
+
+    <optgroup label="OpenRouter (Comerciais/Free)">
+        <option value="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free">Nemotron 3 Omni (Foto/Vídeo/Áudio/Texto)</option>
+            <option value="openai/gpt-oss-120b:free">gpt-oss-120b (Texto)</option>
+            <option value="nvidia/nemotron-3-super-120b-a12b:free">NVIDIA Nemotron 3 Super (Texto)</option>
+            <option value="google/gemma-4-31b-it:free">Gemma 4 31B (Texto/Vídeo/Foto)</option>
+            <option value="openrouter/owl-alpha">Owl Alpha (Texto)</option>
+            <option value="nvidia/nemotron-nano-12b-v2-vl:free">Nemotron Nano 12B 2 VL (Texto/Foto/Vídeo)</option>
+            <option value="z-ai/glm-4.5-air:free">GLM 4.5 Air (Texto)</option>
+            <option value="poolside/laguna-m.1:free">Poolside: Laguna M.1 (Texto)</option>
+            <option value="poolside/laguna-xs.2:free">Poolside: Laguna XS.2 (Texto)</option>
+            <option value="moonshotai/kimi-k2.6:free">Kimi K2.6 (Texto/Foto)</option>
+            <option value="nousresearch/hermes-3-llama-3.1-405b:free">Hermes 3 Llhama 3.1 405B (Texto)</option>
+            <option value="openrouter/free">Modelo aleatório gratuito</option>
+    </optgroup>
+
+    <optgroup label="Groq LPU ⚡ (Super Velocidade)">
+        <option value="groq/llama-3.1-8b-instant">⚡ Groq: Llama 3.1 8B (Instantâneo)</option>
+    </optgroup>
+
+    <optgroup label="NVIDIA NIM 🟢 (Alta Performance)">
+        <option value="nvidia-direct/z-ai/glm-5.1">🟢 NVIDIA: GLM 5.1 (Direto)</option>
+            <option value="nvidia-direct/meta/llama-3.2-90b-vision-instruct">🟢 NVIDIA: Llama 3.2 90B Vision Instruct(Direto)</option>
+            <option value="nvidia-direct/minimaxai/minimax-m2.7">🟢 NVIDIA: MiniMax M2.7 (Direto)</option>
+            <option value="nvidia-direct/moonshotai/kimi-k2.6">🟢 NVIDIA: Kimi K2.6 (Direto)</option>
+            <option value="nvidia-direct/deepseek-ai/deepseek-v4-flash">🟢 NVIDIA: DeepSeek V4 flash (Direto)</option>
+            <option value="nvidia-direct/qwen/qwen3-coder-480b-a35b-instruct">🟢 NVIDIA: Qwen3 Coder 480B a35b (Direto)</option>
+    </optgroup>
+
+                <optgroup label="Hugging Face 🤗 (Modelos Leves Serverless)">
+                <option value="hf/Qwen/Qwen3.6-35B-A3B">Qwen3.6-35B-A3B</option>
+                <option value="hf/meta-llama/Llama-3.1-8B-Instruct">Llama 3.1 8B Instruct</option>
+                <option value="hf/deepseek-ai/DeepSeek-V4-Flash">DeepSeek-V4-Flash</option>
+               <option value="hf/zai-org/GLM-5.1">GLM-5.1</option>
+                <option value="hf/moonshotai/Kimi-K2.6">Kimi-K2.6</option>
+               <option value="hf/MiniMaxAI/MiniMax-M2.7">MiniMax-M2.7</option>
+                <option value="hf/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-NVFP4">NVIDIA-Nemotron-3-Ultra-550B-A55B-NVFP4</option>
+            </optgroup>
+</select>
+        <select id="fusion-power-select" style="display:none; margin-left:10px;">
+            <option value="low">⚡ Baixo Raciocínio (Rápido)</option>
+            <option value="medium" selected>⚖️ Médio Raciocínio (Balanceado)</option>
+            <option value="high">🧠 Alto Raciocínio (Profundo)</option>
+        </select>
+    </header>
+    
+    <div id="chat-container"></div>
+    
+    <footer>
+        <div id="file-preview"></div>
+        <div id="typing" style="display:none; color: var(--accent); font-size: 0.8rem; font-weight: bold; padding: 6px; border-left: 3px solid var(--accent); background: rgba(59, 130, 246, 0.1); border-radius: 6px;">Processando resposta...</div>
+        
+        <div id="turnstile-wrapper">
+            <span id="turnstile-status-text" style="font-size: 0.75rem; color: var(--text-dim);">Carregando verificação de segurança...</span>
+            <div id="turnstile-container"></div>
+            <div id="adblock-banner" class="adblock-warning">
+                ⚠️ **Bloqueador de Anúncios Detectado (Opera AdBlock)!**<br>
+                O validador da Cloudflare foi impedido de carregar. Desative o "Bloquear anúncios" nas configurações do Opera para poder conversar.
+            </div>
+        </div>
+
+        <div class="input-row">
+            <label for="file-input" class="attach-btn" title="Anexar Arquivo">📎</label>
+            <input type="file" id="file-input" style="display: none;" accept="image/*,video/*,audio/*">
+            <textarea id="user-input" placeholder="Digite algo ou anexe uma foto vídeo e etc" rows="1"></textarea>
+            <button class="send-btn" id="send-btn" onclick="handleSend()">➔</button>
+        </div>
+    </footer>
+</div>
+
+<script>
+    const WORKER_URL = "https://blazeria.davirediske.workers.dev";
+    const GOOGLE_CLIENT_ID = "632093910027-68iiou8erp58fh95col61m0o58vuj0ag.apps.googleusercontent.com";
+
+    let chats = [];
+    let currentId = null;
+    let turnstileToken = null;
+    let tokenSessaoAtiva = localStorage.getItem('blazeria_session_token') || null;
+    let modoCadastroLocal = false;
+    let googleButtonRendered = false;
+    
+    // VARIÁVEL NOVA PARA O SISTEMA DE E-MAIL
+    let emailPendente = "";
+
+    // INICIALIZAÇÃO DO GOOGLE SDK E DA INTERFACE
+    window.onload = function () {
+        verificarEstadoSessao();
+        atualizarLabelsBotoesApi();
+    };
+
+    // SISTEMA DE NOTIFICAÇÕES TOAST CUSTOMIZADO (IMUNE A IFRAME BLOCKS E MAIS ELEGANTE)
+    function showToast(mensagem, tipo = 'info') {
+        const container = document.getElementById('custom-toast-container');
+        const toast = document.createElement('div');
+        toast.className = `custom-toast ${tipo}`;
+        
+        let emoji = "ℹ️";
+        if (tipo === 'success') emoji = "✅";
+        if (tipo === 'error') emoji = "❌";
+        if (tipo === 'warning') emoji = "⚠️";
+
+        toast.innerHTML = `<span>${emoji}</span><span>${mensagem}</span>`;
+        container.appendChild(toast);
+
+        // Dispara a animação de entrada
+        setTimeout(() => toast.classList.add('show'), 50);
+
+        // Dispara a animação de saída e remove
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    // FUNÇÃO PARA INICIALIZAR E GARANTIR A RENDERIZAÇÃO DO BOTÃO DO GOOGLE
+    function inicializarGoogleButton() {
+        if (typeof google !== 'undefined' && GOOGLE_CLIENT_ID && !googleButtonRendered) {
+            try {
+                google.accounts.id.initialize({
+                    client_id: GOOGLE_CLIENT_ID,
+                    callback: handleCredentialResponse
+                });
+                
+                google.accounts.id.renderButton(
+                    document.getElementById("buttonDiv"),
+                    { theme: "filled_blue", size: "large", type: "standard", width: 240 }
+                );
+                
+                googleButtonRendered = true;
+            } catch (err) {
+                console.error("Falha ao desenhar botão do Google:", err);
+            }
+        }
+    }
+
+    // CONTROLE DO ACORDEON DE AUTENTICAÇÃO
+    function toggleAuthAccordion() {
+        const accordion = document.getElementById('auth-accordion-container');
+        const arrow = document.getElementById('accordion-arrow');
+        const isActive = accordion.classList.contains('active');
+        
+        if (isActive) {
+            accordion.classList.remove('active');
+            arrow.innerText = '▼';
+        } else {
+            accordion.classList.add('active');
+            arrow.innerText = '▲';
+            
+            // Força a renderização imediata do Google quando a sanfona é aberta
+            setTimeout(inicializarGoogleButton, 50);
+        }
+    }
+
+    // ALTERNA ENTRE LOGIN E CADASTRO LOCAL
+    function toggleModoLocal() {
+        modoCadastroLocal = !modoCadastroLocal;
+        const nomeInput = document.getElementById('local-nome-input');
+        const actionBtn = document.getElementById('local-action-btn');
+        const toggleBtn = document.getElementById('local-toggle-btn');
+        
+        if (modoCadastroLocal) {
+            nomeInput.style.display = 'block';
+            actionBtn.innerText = 'Cadastrar';
+            toggleBtn.innerText = 'Fazer Login';
+        } else {
+            nomeInput.style.display = 'none';
+            actionBtn.innerText = 'Entrar';
+            toggleBtn.innerText = 'Criar Conta';
+        }
+    }
+
+    // PROCESSA LOGIN OU GERA CÓDIGO DE CADASTRO (CORRIGIDO NOME DA FUNÇÃO)
+    async function executarLoginLocal() {
+        const email = document.getElementById('local-email-input').value.trim();
+        const password = document.getElementById('local-senha-input').value;
+        const nome = document.getElementById('local-nome-input').value.trim();
+
+        if (!email || !password || (modoCadastroLocal && !nome)) {
+            showToast("Preencha todos os campos obrigatórios.", "warning");
+            return;
+        }
+
+        const endpoint = modoCadastroLocal ? "/auth/register-local" : "/auth/login-local";
+        const bodyPayload = { email, password };
+        if (modoCadastroLocal) bodyPayload.nome = nome;
+
+        try {
+            document.getElementById('turnstile-status-text').innerText = modoCadastroLocal ? "Gerando código e enviando e-mail..." : "Entrando...";
+            document.getElementById('turnstile-status-text').style.display = 'block';
+
+            const res = await fetch(`${WORKER_URL}${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyPayload)
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Erro de login/cadastro.");
+
+            // SE A ROTA PEDIR VERIFICAÇÃO DE E-MAIL (Novo Sistema Brevo)
+            if (data.requiresVerification) {
+                emailPendente = data.email;
+                document.getElementById('local-auth-main').style.display = 'none';
+                document.getElementById('local-verify-container').style.display = 'block';
+                showToast("E-mail enviado! Digite o código de 6 dígitos para liberar a sua conta.", "success");
+                document.getElementById('turnstile-status-text').style.display = 'none';
+                return;
+            }
+
+            // SE FOR LOGIN DIRETO E FUNCIONAR
+            if (data.success) {
+                localStorage.setItem('blazeria_session_token', data.tokenSessao);
+                localStorage.setItem('blazeria_user_name', data.usuario.nome);
+                localStorage.setItem('blazeria_user_email', data.usuario.email);
+                tokenSessaoAtiva = data.tokenSessao;
+                verificarEstadoSessao();
+                document.getElementById('turnstile-status-text').style.display = 'none';
+                
+                // Limpa campos do formulário
+                document.getElementById('local-email-input').value = "";
+                document.getElementById('local-senha-input').value = "";
+                document.getElementById('local-nome-input').value = "";
+                showToast("Sessão iniciada com sucesso via login local!", "success");
+            }
+        } catch (e) {
+            showToast(e.message, "error");
+            document.getElementById('turnstile-status-text').style.display = 'none';
+        }
+    }
+
+    // NOVA FUNÇÃO: VERIFICA O CÓDIGO DO E-MAIL
+    async function verificarCodigoRegistro() {
+        const codigo = document.getElementById('local-codigo-input').value.trim();
+        if (codigo.length < 6) {
+            return showToast("Digite os 6 números do código.", "warning");
+        }
+
+        try {
+            document.getElementById('turnstile-status-text').innerText = "Validando código...";
+            document.getElementById('turnstile-status-text').style.display = 'block';
+
+            const res = await fetch(`${WORKER_URL}/auth/verify-code`, {
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: emailPendente, codigo })
+            });
+            const data = await res.json();
+            
+            if (!res.ok) throw new Error(data.error || "Erro ao verificar código.");
+            
+            // Sucesso! Loga o usuário.
+            localStorage.setItem('blazeria_session_token', data.tokenSessao);
+            localStorage.setItem('blazeria_user_name', data.usuario.nome);
+            localStorage.setItem('blazeria_user_email', data.usuario.email);
+            tokenSessaoAtiva = data.tokenSessao;
+            verificarEstadoSessao();
+            document.getElementById('turnstile-status-text').style.display = 'none';
+            
+            // Limpa tudo e volta a interface ao normal para o futuro
+            document.getElementById('local-email-input').value = "";
+            document.getElementById('local-senha-input').value = "";
+            document.getElementById('local-nome-input').value = "";
+            cancelarVerificacao();
+            
+            showToast("Conta criada e verificada com sucesso!", "success");
+
+        } catch (e) {
+            showToast(e.message, "error");
+            document.getElementById('turnstile-status-text').style.display = 'none';
+        }
+    }
+
+    // CANCELA A TELA DE VERIFICAÇÃO E VOLTA PARA O LOGIN
+    function cancelarVerificacao() {
+        document.getElementById('local-verify-container').style.display = 'none';
+        document.getElementById('local-auth-main').style.display = 'block';
+        document.getElementById('local-codigo-input').value = "";
+    }
+
+    // PROCESSAMENTO DO LOGIN BEM SUCEDIDO DO GOOGLE
+    async function handleCredentialResponse(response) {
+        try {
+            document.getElementById('turnstile-status-text').innerText = "Autenticando sessão na Nuvem...";
+            document.getElementById('turnstile-status-text').style.display = 'block';
+
+            const res = await fetch(`${WORKER_URL}/auth/google`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential: response.credential })
+            });
+
+            if (!res.ok) throw new Error("Falha ao conectar com banco de dados D1.");
+
+            const data = await res.json();
+            if (data.success) {
+                localStorage.setItem('blazeria_session_token', data.tokenSessao);
+                localStorage.setItem('blazeria_user_name', data.usuario.nome);
+                localStorage.setItem('blazeria_user_email', data.usuario.email);
+                tokenSessaoAtiva = data.tokenSessao;
+                verificarEstadoSessao();
+                document.getElementById('turnstile-status-text').style.display = 'none';
+                showToast("Login com o Google autenticado com sucesso!", "success");
+            }
+        } catch (e) {
+            showToast("Erro no login Google: " + e.message, "error");
+        }
+    }
+
+    function verificarEstadoSessao() {
+        const loginWrapper = document.getElementById('google-login-wrapper');
+        const profileBox = document.getElementById('user-profile');
+        
+        if (tokenSessaoAtiva) {
+            if(loginWrapper) loginWrapper.style.display = 'none';
+            profileBox.style.display = 'flex';
+            document.getElementById('user-display-name').innerText = localStorage.getItem('blazeria_user_name') || "Usuário";
+            document.getElementById('user-display-email').innerText = localStorage.getItem('blazeria_user_email') || "";
+            document.getElementById('chat-title').innerText = "Sincronizando...";
+            carregarChatsDoServidor();
+        } else {
+            if(loginWrapper) loginWrapper.style.display = 'flex';
+            profileBox.style.display = 'none';
+            chats = JSON.parse(localStorage.getItem('blazeria_chats')) || [];
+            if (chats.length === 0) createNewChat();
+            else switchChat(chats[chats.length - 1].id);
+            
+            // Renderiza o botão se o acordeon já estiver aberto
+            inicializarGoogleButton();
+        }
+    }
+
+    function executarLogout() {
+        localStorage.removeItem('blazeria_session_token');
+        localStorage.removeItem('blazeria_user_name');
+        localStorage.removeItem('blazeria_user_email');
+        tokenSessaoAtiva = null;
+        window.location.reload();
+    }
+
+    async function carregarChatsDoServidor() {
+        if (!tokenSessaoAtiva) return;
+        try {
+            const res = await fetch(`${WORKER_URL}/get-chats`, {
+                headers: { 'Authorization': `Bearer ${tokenSessaoAtiva}` }
+            });
+            if (res.ok) {
+                chats = await res.json();
+                if (chats.length === 0) createNewChat();
+                else switchChat(chats[chats.length - 1].id);
+            } else if (res.status === 401) {
+                executarLogout();
+            }
+        } catch (e) { 
+            console.error("Erro ao sincronizar nuvem: ", e); 
+            document.getElementById('chat-title').innerText = "Modo Offline (Erro D1)";
+        }
+    }
+
+    // Monitor do Carregamento do Turnstile
+    setTimeout(() => {
+        if (!window.turnstile || !turnstileToken) {
+            const container = document.getElementById('turnstile-container');
+            if (container && container.children.length === 0) {
+                document.getElementById('adblock-banner').style.display = 'block';
+                document.getElementById('turnstile-status-text').innerText = "❌ Bloqueado pelo Navegador";
+            }
+        }
+    }, 4000);
+
+    function onTurnstileSuccess(token) { turnstileToken = token; document.getElementById('adblock-banner').style.display = 'none'; document.getElementById('turnstile-status-text').style.display = 'none'; }
+    function onTurnstileError() { document.getElementById('turnstile-status-text').innerText = "⚠️ Erro no carregamento. Tente recarregar a página."; }
+    function onTurnstileExpired() { turnstileToken = null; if(window.turnstile) turnstile.reset(); }
+
+    function atualizarLabelsBotoesApi() {
+        const orIndex = localStorage.getItem('blazeria_api_index') || '0';
+        const hfIndex = localStorage.getItem('blazeria_hf_api_index') || '0';
+        const orBtn = document.getElementById('or-key-btn');
+        const hfBtn = document.getElementById('hf-key-btn');
+        if(orBtn) orBtn.innerText = `🔑 OpenRouter: ${orIndex === '0' ? 'Principal' : 'Secundária'}`;
+        if(hfBtn) hfBtn.innerText = `🔑 Hugging Face: ${hfIndex === '0' ? 'Principal' : 'Secundária'}`;
+    }
+
+    function toggleApiKey() {
+        let currentKeyIndex = localStorage.getItem('blazeria_api_index') || '0';
+        let newIndex = currentKeyIndex === '0' ? '1' : '0';
+        localStorage.setItem('blazeria_api_index', newIndex);
+        atualizarLabelsBotoesApi();
+        showToast(`API Key OpenRouter alterada para a conta ${newIndex === '0' ? 'Principal' : 'Secundária'}!`, "info");
+    }
+
+    function toggleHfApiKey() {
+        let currentKeyIndex = localStorage.getItem('blazeria_hf_api_index') || '0';
+        let newIndex = currentKeyIndex === '0' ? '1' : '0';
+        localStorage.setItem('blazeria_hf_api_index', newIndex);
+        atualizarLabelsBotoesApi();
+        showToast(`API Key Hugging Face alterada para a conta ${newIndex === '0' ? 'Principal' : 'Secundária'}!`, "info");
+    }
+
+    function toggleTerminalMode() {
+        document.body.classList.toggle('terminal-mode');
+        localStorage.setItem('blazeria_terminal_mode', document.body.classList.contains('terminal-mode'));
+    }
+    if(localStorage.getItem('blazeria_terminal_mode') === 'true') document.body.classList.add('terminal-mode');
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    document.getElementById('file-input').addEventListener('change', function() {
+        const preview = document.getElementById('file-preview');
+        if (this.files.length > 0) { preview.style.display = 'block'; preview.innerText = `[ANEXO]: ${this.files[0].name}`; } 
+        else { preview.style.display = 'none'; }
+    });
+
+    function saveToStorage() {
+        if (!tokenSessaoAtiva) {
+            localStorage.setItem('blazeria_chats', JSON.stringify(chats));
+        }
+    }
+
+    function createNewChat() {
+        const id = Date.now().toString();
+        chats.push({ id, title: "Novo Estudo", messages: [] });
+        saveToStorage();
+        switchChat(id);
+        if (window.innerWidth < 768) toggleMenu(false);
+    }
+
+    function switchChat(id) {
+        currentId = id;
+        const chat = chats.find(c => c.id === currentId);
+        if (chat) document.getElementById('chat-title').innerText = chat.title;
+        renderSidebar();
+        renderMessages();
+    }
+
+    async function deleteChat(id) {
+        if (!confirm("Tem certeza de que deseja apagar permanentemente este chat?")) return;
+        chats = chats.filter(c => c.id !== id);
+        
+        if (tokenSessaoAtiva) {
+            await fetch(`${WORKER_URL}/delete-chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tokenSessaoAtiva}` },
+                body: JSON.stringify({ chatId: id })
+            });
+        } else {
+            saveToStorage();
+        }
+        
+        if (chats.length === 0) createNewChat();
+        else switchChat(chats[chats.length - 1].id);
+    }
+
+    function renderSidebar() {
+        const list = document.getElementById('chat-list');
+        list.innerHTML = '';
+        chats.slice().reverse().forEach(c => {
+            const div = document.createElement('div');
+            div.className = `chat-item ${c.id === currentId ? 'active' : ''}`;
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'chat-title-text';
+            titleSpan.innerText = c.title;
+            titleSpan.onclick = () => { switchChat(c.id); if (window.innerWidth < 768) toggleMenu(false); };
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'chat-delete-btn'; deleteBtn.innerHTML = '🗑️';
+            deleteBtn.onclick = (e) => { e.stopPropagation(); deleteChat(c.id); };
+            div.appendChild(titleSpan); div.appendChild(deleteBtn); list.appendChild(div);
+        });
+    }
+
+    function renderMessages() {
+        const container = document.getElementById('chat-container');
+        container.innerHTML = '';
+        const chat = chats.find(c => c.id === currentId);
+        if(!chat) return;
+        
+        chat.messages.forEach(m => {
+            const div = document.createElement('div');
+            div.className = `msg ${m.role === 'user' ? 'user-msg' : 'bot-msg'}`;
+            
+            if (m.role === 'assistant') {
+                let textoProtegido = m.content;
+                const safeRegex = new RegExp('\\x60{3}(?:math|latex|tex|katex)\\n?([\\s\\S]*?)\\x60{3}', 'gi');
+                textoProtegido = textoProtegido.replace(safeRegex, '$1');
+                const mathBlocks = [];
+                
+                textoProtegido = textoProtegido.replace(/\\\[([\s\S]*?)\\\]/g, (match, math) => { mathBlocks.push({ text: math, display: true }); return `MATHBLOCKXYZ${mathBlocks.length - 1}XYZ`; });
+                textoProtegido = textoProtegido.replace(/\$$([\s\S]*?)\$\$/g, (match, math) => { mathBlocks.push({ text: math, display: true }); return `MATHBLOCKXYZ${mathBlocks.length - 1}XYZ`; });
+                textoProtegido = textoProtegido.replace(/\\\(([\s\S]*?)\\\)/g, (match, math) => { mathBlocks.push({ text: math, display: false }); return `MATHBLOCKXYZ${mathBlocks.length - 1}XYZ`; });
+                textoProtegido = textoProtegido.replace(/\$([^\$\n\t]+?)\$/g, (match, math) => { mathBlocks.push({ text: math, display: false }); return `MATHBLOCKXYZ${mathBlocks.length - 1}XYZ`; });
+
+                let htmlFormatado = marked.parse(textoProtegido);
+
+                mathBlocks.forEach((block, index) => {
+                    try {
+                        const renderedMath = katex.renderToString(block.text, { displayMode: block.display, throwOnError: false });
+                        htmlFormatado = htmlFormatado.replace(`MATHBLOCKXYZ${index}XYZ`, renderedMath);
+                    } catch (e) {
+                        const delimiter = block.display ? '$$' : '$';
+                        htmlFormatado = htmlFormatado.replace(`MATHBLOCKXYZ${index}XYZ`, `${delimiter}${block.text}${delimiter}`);
+                    }
+                });
+
+                div.innerHTML = htmlFormatado;
+
+                if (m.modelUsed) {
+                    const badge = document.createElement('div');
+                    badge.style.cssText = "font-size:0.75rem; color:var(--text-dim); margin-top:8px; border-top:1px solid var(--border); padding-top:5px; text-align:right;";
+                    badge.innerText = `⚡ Respondido por: ${m.modelUsed}`;
+                    div.appendChild(badge);
+                }
+            } else { div.innerText = m.content; }
+            container.appendChild(div);
+        });
+
+        if (window.Prism) Prism.highlightAllUnder(container);
+        if (window.renderMathInElement) {
+            renderMathInElement(container, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false}, {left: '\\[', right: '\\]', display: true}
+                ],
+                ignoredTags: ["script", "noscript", "style", "textarea", "option"], throwOnError : false
+            });
+        }
+        container.scrollTop = container.scrollHeight;
+    }
+
+    async function handleSend() {
+        const input = document.getElementById('user-input');
+        const fileInput = document.getElementById('file-input');
+        const modelSelect = document.getElementById('model-select');
+        
+        const text = input.value.trim();
+        const file = fileInput.files[0];
+
+        if (!text && !file) return;
+
+        // ========================================================
+        // 🔒 BLOQUEIO ABSOLUTO SE NÃO ESTIVER LOGADO
+        // ========================================================
+        if (!tokenSessaoAtiva) {
+            showToast("Acesso Restrito: Faça login ou crie uma conta local para utilizar o BlazerIA.", "error");
+            
+            // Abre o menu lateral para destacar o login
+            toggleMenu(true);
+            
+            // Abre o acordeon de login se estiver fechado
+            const accordion = document.getElementById('auth-accordion-container');
+            if (!accordion.classList.contains('active')) {
+                toggleAuthAccordion();
+            }
+            return;
+        }
+
+        if (!turnstileToken && window.turnstile) turnstileToken = turnstile.getResponse();
+
+        if (!turnstileToken && window.turnstile) {
+            const typingIndicator = document.getElementById('typing');
+            typingIndicator.innerText = "Aguardando verificação de segurança da Cloudflare...";
+            typingIndicator.style.display = 'block';
+            for (let i = 0; i < 10; i++) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+                turnstileToken = turnstile.getResponse();
+                if (turnstileToken) break;
+            }
+        }
+
+        if (!turnstileToken) {
+            showToast("A verificação de segurança não pôde ser carregada. Verifique seu AdBlocker.", "warning");
+            document.getElementById('typing').style.display = 'none';
+            return;
+        }
+
+        const tokenAtivo = turnstileToken;
+        turnstileToken = null; 
+        if (window.turnstile) window.turnstile.reset();
+
+        const chat = chats.find(c => c.id === currentId);
+        if (chat.messages.length === 0) {
+            chat.title = text ? text.substring(0, 20) : "Análise de Mídia";
+            document.getElementById('chat-title').innerText = chat.title;
+        }
+
+        let displayContent = text || `[ANEXO: ${file.name}]`;
+        if (file && text) displayContent = `${text}\n\n[ANEXO: ${file.name}]`;
+
+        chat.messages.push({ role: 'user', content: displayContent });
+        input.value = ''; fileInput.value = ''; document.getElementById('file-preview').style.display = 'none';
+        renderMessages();
+
+        const typingIndicator = document.getElementById('typing');
+        typingIndicator.innerText = (modelSelect.value === "fusion" || modelSelect.value === "nvidia-fusion") ? "🌀 Orquestrando comitê de IAs na Fila..." : "Processando resposta...";
+        typingIndicator.style.display = 'block';
+        document.getElementById('send-btn').disabled = true;
+
+        try {
+            let apiContent = [];
+            if (text) apiContent.push({ type: "text", text: text });
+            if (file) {
+                const base64 = await fileToBase64(file);
+                if (file.type.startsWith('image/')) apiContent.push({ type: "image_url", image_url: { url: base64 } });
+            }
+
+            const memoriaCurta = chat.messages.slice(-30).map((msg, index, array) => {
+                if (index === array.length - 1 && file) return { role: 'user', content: apiContent };
+                return { role: msg.role, content: msg.content };
+            });
+
+            let modelToUse = modelSelect.value;
+            let fusionPower = null;
+            if (modelToUse === "fusion") {
+                fusionPower = document.getElementById('fusion-power-select').value || 'medium';
+            }
+
+            const payload = {
+                model: modelToUse === "nvidia-fusion" ? "nvidia-fusion" : modelToUse, 
+                messages: memoriaCurta,
+                turnstileToken: tokenAtivo,
+                apiIndex: localStorage.getItem('blazeria_api_index') || '0',
+                hfApiIndex: localStorage.getItem('blazeria_hf_api_index') || '0',
+                chatId: currentId,
+                fusionPower: fusionPower
+            };
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (tokenSessaoAtiva) headers['Authorization'] = `Bearer ${tokenSessaoAtiva}`;
+
+            const res = await fetch(WORKER_URL, { method: 'POST', headers: headers, body: JSON.stringify(payload) });
+            
+            // ========================================================
+            // 🛡️ TRATAMENTO EXCLUSIVO DE LIMITES DIÁRIOS (ERRO 429)
+            // ========================================================
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                const errMsg = errData.error || `Erro HTTP ${res.status}`;
+                
+                if (res.status === 429) {
+                    showToast(errMsg, "warning");
+                    // Remove a última pergunta do usuário para não poluir o chat de forma errônea
+                    chat.messages.pop();
+                    saveToStorage();
+                    renderMessages();
+                    document.getElementById('typing').style.display = 'none';
+                    document.getElementById('send-btn').disabled = false;
+                    return;
+                }
+                throw new Error(errMsg);
+            }
+            
+            const data = await res.json();
+            
+            if (data.status === "queued") {
+                const jobId = data.jobId;
+                let tentativas = 0;
+                const checkInterval = setInterval(async () => {
+                    try {
+                        const checkRes = await fetch(`${WORKER_URL}/check-job?jobId=${jobId}`);
+                        if (!checkRes.ok) { tentativas++; if (tentativas >= 5) throw new Error("Falhas rede"); return; }
+                        tentativas = 0;
+                        const checkData = await checkRes.json();
+
+                        if (checkData.status === "processing") typingIndicator.innerText = `🌀 Modo Fusion: ${checkData.step}`;
+                        if (checkData.status === "completed") {
+                            clearInterval(checkInterval);
+                            chat.messages.push({ role: 'assistant', content: checkData.error ? "⚠️ Erro: " + checkData.error : checkData.reply, modelUsed: checkData.modelUsed });
+                            saveToStorage(); renderMessages(); renderSidebar();
+                            document.getElementById('typing').style.display = 'none'; document.getElementById('send-btn').disabled = false;
+                        }
+                    } catch (e) {
+                        clearInterval(checkInterval);
+                        chat.messages.push({ role: 'assistant', content: `⚠️ Erro de polling: ${e.message}` });
+                        renderMessages(); document.getElementById('typing').style.display = 'none'; document.getElementById('send-btn').disabled = false;
+                    }
+                }, 2500); 
+                return;
+            }
+
+            if (data.error) chat.messages.push({ role: 'assistant', content: `⚠️ **[ERRO CRÍTICO]:**\n\n${data.error}` });
+            else chat.messages.push({ role: 'assistant', content: data.reply, modelUsed: data.modelUsed });
+            
+            saveToStorage(); renderMessages(); renderSidebar();
+            document.getElementById('typing').style.display = 'none'; document.getElementById('send-btn').disabled = false;
+
+        } catch (e) {
+            chat.messages.push({ role: 'assistant', content: `[ERRO CRÍTICO]: Falha. Motivo: ${e.message}` });
+            renderMessages(); document.getElementById('typing').style.display = 'none'; document.getElementById('send-btn').disabled = false;
+        }
+    }
+
+    function toggleMenu(show) { document.getElementById('sidebar').classList.toggle('active', show); document.getElementById('overlay').style.display = show ? 'block' : 'none'; }
+    document.getElementById('user-input').addEventListener('keydown', function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } });
+
+    function updateFusionPowerVisibility() {
+        const modelSelect = document.getElementById('model-select');
+        const fusionPowerSelect = document.getElementById('fusion-power-select');
+        fusionPowerSelect.style.display = modelSelect.value === 'fusion' ? 'block' : 'none';
+    }
+    document.getElementById('model-select').addEventListener('change', updateFusionPowerVisibility);
+    updateFusionPowerVisibility();
+</script>
+</body>
+</html>
