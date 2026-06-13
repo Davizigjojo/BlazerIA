@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+
+    <!-- Dependências de Renderização Acadêmica e Visualização de Códigos -->
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <!-- Script Oficial do Google Identity Services para Login -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <!-- Script do Turnstile Cloudflare -->
+    <script>
+        window.onloadTurnstileCallback = function () {
+            try {
+                if (window.turnstile) {
+                    turnstile.render('#turnstile-container', {
+                        sitekey: '0x4AAAAAADQlqTcTMfJMejbo',
+                        callback: onTurnstileSuccess,
+                        'error-callback': onTurnstileError,
+                        'expired-callback': onTurnstileExpired
+                    });
+                    document.getElementById('turnstile-status-text').style.display = 'none';
+                }
+            } catch (e) {
+                console.error("Erro na inicialização do Turnstile: ", e);
+            }
+        };
+    </script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback&render=explicit" async defer></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BlazerIA - Memória Ativa</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --accent: #3b82f6;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: #334155;
+            --terminal-green: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg-dark); color: var(--text); display: flex; height: 100vh; height: 100dvh; overflow: hidden; transition: 0.2s; }
+
+        /* MODO TERMINAL */
+        body.terminal-mode {
+            background: #000 !important;
+            font-family: 'Courier New', Courier, monospace !important;
+        }
+        body.terminal-mode * { font-family: 'Courier New', Courier, monospace !important; }
+        body.terminal-mode .msg { 
+            background: transparent !important; 
+            border: none !important; 
+            color: var(--terminal-green) !important;
+            padding: 5px 0 !important;
+            max-width: 100% !important;
+        }
+        body.terminal-mode .user-msg::before { content: "usuário: "; font-weight: bold; color: #fff; }
+        body.terminal-mode .bot-msg::before { content: "IA: "; font-weight: bold; color: var(--accent); }
+        body.terminal-mode header, body.terminal-mode footer, body.terminal-mode #sidebar {
+            background: #000 !important;
+            border-color: #333 !important;
+        }
+
+        /* BARRA LATERAL (SIDEBAR) */
+        #sidebar {
+            width: 280px; background: var(--bg-card); border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; transition: 0.3s;
+            position: fixed; height: 100%; z-index: 100; transform: translateX(-100%);
+        }
+        #sidebar.active { transform: translateX(0); }
+        
+        .sidebar-header { 
+            padding: 15px; border-bottom: 1px solid var(--border); 
+            display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; 
+        }
+        
+        .auth-accordion-trigger {
+            background: #1e293b; color: var(--text); border: 1px solid var(--border);
+            padding: 10px; border-radius: 8px; width: 100%; font-weight: bold; font-size: 0.85rem;
+            cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: 0.2s;
+        }
+        .auth-accordion-trigger:hover { background: #334155; }
+        
+        .auth-accordion-content {
+            max-height: 0; overflow: hidden; opacity: 0; display: flex; flex-direction: column; gap: 8px;
+            padding: 0 5px; background: rgba(0, 0, 0, 0.15); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.03);
+            margin-top: 0; transition: max-height 0.3s ease-out, opacity 0.2s ease-out, padding 0.3s ease-out, margin 0.3s ease-out;
+        }
+        .auth-accordion-content.active {
+            max-height: 400px; opacity: 1; padding: 10px 5px; margin-top: 4px;
+        }
+
+        .user-profile-box {
+            background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3);
+            padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 6px;
+        }
+        .logout-btn {
+            background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid var(--danger);
+            padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;
+        }
+        .logout-btn:hover { background: var(--danger); color: white; }
+
+        .local-auth-container {
+            background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border);
+            border-radius: 8px; padding: 10px; width: 100%;
+        }
+        .local-auth-title {
+            font-size: 0.75rem; font-weight: bold; color: var(--text-dim); text-align: center;
+            margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 5px;
+        }
+        .local-auth-input {
+            width: 100%; background: var(--bg-dark); color: white; border: 1px solid var(--border);
+            padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; outline: none; margin-bottom: 6px;
+        }
+        .local-auth-input:focus { border-color: var(--accent); }
+        .local-auth-row { display: flex; gap: 6px; }
+        .local-auth-btn {
+            flex: 1; background: #334155; color: white; border: none; padding: 6px;
+            border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .local-auth-btn.primary { background: var(--accent); }
+        .local-auth-btn:hover { opacity: 0.9; transform: scale(0.98); }
+
+        .new-chat-btn {
+            background: var(--accent); color: white; border: none; padding: 12px;
+            border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .new-chat-btn:hover { background: #2563eb; }
+        
+        .terminal-toggle-btn {
+            background: #334155; color: #cbd5e1; border: 1px solid var(--border);
+            padding: 8px; border-radius: 6px; width: 100%; cursor: pointer; font-size: 0.8rem;
+        }
+
+        #chat-list { flex: 1; overflow-y: auto; padding: 10px; background: rgba(0, 0, 0, 0.05); }
+        
+        .chat-item {
+            padding: 12px; border-radius: 8px; margin-bottom: 5px; cursor: pointer; font-size: 0.9rem; color: var(--text-dim);
+            display: flex; align-items: center; justify-content: space-between; gap: 10px; transition: 0.2s;
+        }
+        .chat-item:hover { background: rgba(255, 255, 255, 0.05); }
+        .chat-item.active { background: var(--border); border-left: 4px solid var(--accent); color: var(--text); }
+        
+        .chat-title-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-delete-btn {
+            background: transparent; border: none; cursor: pointer; font-size: 0.95rem; opacity: 0.4; transition: 0.2s; padding: 2px 4px; border-radius: 4px;
+        }
+        .chat-item:hover .chat-delete-btn { opacity: 0.8; }
+        .chat-delete-btn:hover { opacity: 1 !important; background: rgba(239, 68, 68, 0.2); }
+
+        .sidebar-footer-buttons {
+            padding: 10px 15px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; background: #111a2e;
+        }
+
+        /* PAINEL DE DESENVOLVEDOR NO SIDEBAR */
+        .developer-panel {
+            background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3);
+            margin: 8px; padding: 10px; border-radius: 8px; display: none; flex-direction: column; gap: 6px;
+        }
+        .developer-title { font-size: 0.75rem; font-weight: bold; color: #60a5fa; text-align: center; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+        .developer-btn { background: #3b82f6; color: white; border: none; padding: 6px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; transition: 0.2s; width: 100%; }
+        .developer-btn.danger { background: #ef4444; }
+        .developer-btn:hover { opacity: 0.9; }
+
+        /* TABELA DE LOGS NO MODAL */
+        .logs-table-container { width: 100%; max-height: 50dvh; overflow-y: auto; margin-top: 10px; border: 1px solid var(--border); border-radius: 8px; }
+        .logs-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
+        .logs-table th, .logs-table td { padding: 10px; border-bottom: 1px solid var(--border); }
+        .logs-table th { background: var(--bg-card); color: #60a5fa; position: sticky; top: 0; }
+        .logs-table tr:hover { background: rgba(255,255,255,0.02); }
+        .log-badge { padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.7rem; }
+        .log-badge.success { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+        .log-badge.warning { background: rgba(245, 158, 11, 0.15); color: #fca5a5; }
+
+        /* ÁREA PRINCIPAL DO CHAT */
+        #main { flex: 1; display: flex; flex-direction: column; width: 100%; overflow: hidden; position: relative; }
+        
+        header { padding: 12px 15px; background: var(--bg-card); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+        .header-left { display: flex; align-items: center; gap: 15px; overflow: hidden; flex: 1; }
+        .menu-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        #chat-title { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+
+        #model-select { background: var(--bg-dark); color: white; border: 1px solid var(--border); padding: 8px; border-radius: 8px; font-size: 0.85rem; outline: none; max-width: 250px; cursor: pointer; }
+
+        #chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }
+        .msg { max-width: 90%; padding: 12px 16px; border-radius: 12px; line-height: 1.5; font-size: 0.95rem; overflow-wrap: break-word; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .user-msg { align-self: flex-end; background: var(--accent); border-bottom-right-radius: 2px; white-space: pre-wrap; }
+        .bot-msg { align-self: flex-start; background: var(--bg-card); border: 1px solid var(--border); border-bottom-left-radius: 2px; }
+        .bot-msg pre, .bot-msg table { overflow-x: auto; max-width: 100%; }
+
+        /* CARTÕES DE SUGESTÃO (EMPTY STATE) */
+        .empty-state { text-align: center; margin: auto; padding: 20px; width: 100%; overflow-y: auto; max-height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .suggestion-cards { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; max-width: 700px; margin: 30px auto 0; width: 100%; }
+        .sugg-card {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; width: calc(33.333% - 8px); min-width: 200px;
+            text-align: left; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .sugg-card:hover { border-color: var(--accent); background: rgba(59, 130, 246, 0.05); transform: translateY(-3px); }
+        .sugg-icon { font-size: 1.5rem; margin-bottom: 8px; }
+
+        footer { padding: 15px; background: var(--bg-card); border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+        
+        #turnstile-wrapper { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 5px; }
+        #turnstile-container { min-height: 65px; display: flex; justify-content: center; align-items: center; }
+        
+        /* AVISO ANTI-BOT */
+        .adblock-warning { background: rgba(245, 158, 11, 0.1); border: 1px dashed var(--warning); color: #fcd34d; padding: 10px 15px; border-radius: 8px; font-size: 0.85rem; text-align: center; max-width: 90%; line-height: 1.5; display: none; margin-top: 4px; }
+
+        .input-row { display: flex; gap: 10px; align-items: flex-end; max-width: 900px; margin: 0 auto; width: 100%; }
+        .attach-btn { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-dim); width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; flex-shrink: 0; transition: 0.2s; }
+        .attach-btn:hover { background: #334155; color: white; }
+        textarea { flex: 1; background: var(--bg-dark); color: white; border: 1px solid var(--border); border-radius: 12px; padding: 12px 15px; resize: none; outline: none; min-height: 45px; max-height: 150px; font-size: 0.95rem; transition: border-color 0.2s; }
+        textarea:focus { border-color: var(--accent); }
+        .send-btn { background: var(--accent); width: 45px; height: 45px; border-radius: 12px; border: none; color: white; cursor: pointer; flex-shrink: 0; font-size: 1.2rem; transition: 0.2s; }
+        .send-btn:hover { background: #2563eb; transform: scale(1.05); }
+        .send-btn:disabled { background: #334155; cursor: not-allowed; transform: scale(1); }
+        #file-preview { font-size: 0.8rem; color: var(--accent); display: none; padding-left: 5px; text-align: center; }
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; }
+
+        /* JANELAS MODAIS */
+        .custom-modal-bg {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(3px);
+        }
+        .custom-modal-content {
+            background-color: #1a1a1e; color: #e0e0e0; padding: 30px; border-radius: 16px;
+            max-width: 550px; width: 90%; max-height: 85vh; overflow-y: auto; border: 1px solid #334155;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+        }
+        .custom-modal-content h3, .custom-modal-content h2 { margin-top: 0; color: #fff; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 20px;}
+        .custom-modal-content h4 { color: #3b82f6; margin-bottom: 8px; margin-top: 20px; font-size: 1.05rem; }
+        .custom-modal-content p, .custom-modal-content li { font-size: 0.95rem; line-height: 1.6; color: #cbd5e1; margin-bottom: 10px; }
+        .close-modal-btn { background-color: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; float: right; margin-top: 20px; transition: 0.2s; }
+        .close-modal-btn:hover { background-color: #2563eb; }
+
+        /* RODAPÉ GLOBAL DE PRIVACIDADE */
+        .site-footer {
+            text-align: center; padding: 10px; font-size: 0.75rem; color: #64748b; background-color: var(--bg-card); border-top: 1px solid var(--border);
+        }
+        .site-footer a { color: #3b82f6; text-decoration: none; font-weight: bold; cursor: pointer; }
+        .site-footer a:hover { text-decoration: underline; }
+
+        /* TOASTS */
+        #custom-toast-container { position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .custom-toast { background: var(--bg-card); border-left: 4px solid var(--accent); color: var(--text); padding: 12px 18px; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4); font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; gap: 10px; transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s; opacity: 0; max-width: 320px; pointer-events: auto; }
+        .custom-toast.show { transform: translateX(0); opacity: 1; }
+        .custom-toast.error { border-left-color: var(--danger); }
+        .custom-toast.success { border-left-color: var(--terminal-green); }
+        .custom-toast.warning { border-left-color: var(--warning); }
+
+        @media (min-width: 768px) { #sidebar { position: static; transform: none; } .menu-btn { display: none; } }
+        @media (max-width: 767px) {
+            header { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+            .header-left { width: 100%; justify-content: space-between; }
+            #model-select, #fusion-power-select { max-width: 100% !important; flex: 1; font-size: 0.8rem; padding: 6px; margin-left:0 !important;}
+            #chat-container { padding: 12px; gap: 12px; }
+            .msg { max-width: 95%; padding: 10px 14px; font-size: 0.92rem; }
+            footer { padding: 10px; }
+            .input-row { gap: 8px; }
+            textarea { padding: 10px; border-radius: 10px; font-size: 0.95rem; }
+            .attach-btn, .send-btn { width: 42px; height: 42px; border-radius: 10px; }
+            #custom-toast-container { right: 10px; left: 10px; top: 10px; }
+            .custom-toast { max-width: 100%; }
+            .suggestion-cards { flex-direction: column; align-items: center; gap: 10px; width: 100%; margin-top: 15px; }
+            .sugg-card { width: 100%; max-width: 320px; min-height: unset; padding: 12px; }
+            .empty-state { padding: 15px; justify-content: start; }
+            #welcome-message { font-size: 1.6rem; margin-top: 10px; }
+            #welcome-subtext { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="overlay" class="overlay" onclick="toggleMenu(false)"></div>
+
+<!-- CONTEINER DE TOASTS -->
+<div id="custom-toast-container"></div>
+
+<!-- BARRA LATERAL -->
+<div id="sidebar">
+    <div class="sidebar-header">
+        
+        <!-- SANFONA DINÂMICA DE LOGIN -->
+        <div id="google-login-wrapper" style="display: flex; flex-direction: column; width: 100%;">
+            <button class="auth-accordion-trigger" onclick="toggleAuthAccordion()">
+                <span>👤 Entrar / Cadastrar</span>
+                <span id="accordion-arrow">▼</span>
+            </button>
+            
+            <div id="auth-accordion-container" class="auth-accordion-content">
+                <div id="buttonDiv" style="display: flex; justify-content: center; margin-bottom: 8px; min-height: 40px;"></div>
+                
+                <div id="local-auth-main" class="local-auth-container">
+                    <div class="local-auth-title">🔐 Login Local (Seguro)</div>
+                    <input type="text" id="local-nome-input" class="local-auth-input" placeholder="Seu Nome (Para Cadastro)" style="display: none;">
+                    <input type="email" id="local-email-input" class="local-auth-input" placeholder="Seu E-mail">
+                    <input type="password" id="local-senha-input" class="local-auth-input" placeholder="Sua Senha">
+                    <div class="local-auth-row">
+                        <button class="local-auth-btn primary" id="local-action-btn" onclick="executarLoginLocal()">Entrar</button>
+                        <button class="local-auth-btn" id="local-toggle-btn" onclick="toggleModoLocal()">Criar Conta</button>
+                    </div>
+                </div>
+
+                <div id="local-verify-container" class="local-auth-container" style="display: none;">
+                    <div class="local-auth-title">📩 Código Enviado!</div>
+                    <p style="font-size: 0.75rem; color: var(--text-dim); text-align: center; margin-bottom: 8px;">Verifique seu e-mail.</p>
+                    <input type="text" id="local-codigo-input" class="local-auth-input" placeholder="Código de 6 dígitos" maxlength="6" style="text-align: center; font-size: 1.2rem; letter-spacing: 4px;">
+                    <div class="local-auth-row">
+                        <button class="local-auth-btn primary" onclick="verificarCodigoRegistro()">Validar</button>
+                        <button class="local-auth-btn" onclick="cancelarVerificacao()">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Painel de Perfil -->
+        <div id="user-profile" class="user-profile-box" style="display: none;">
+            <div style="overflow: hidden; max-width: 170px;">
+                <strong id="user-display-name" style="color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">Usuário</strong>
+                <div style="font-size:0.7rem; color:var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="user-display-email">email@google.com</div>
+            </div>
+            <button class="logout-btn" onclick="executarLogout()">Sair</button>
+        </div>
+
+        <!-- PAINEL DE DESENVOLVEDOR NO SIDEBAR -->
+        <div id="dev-sidebar-panel" class="developer-panel">
+            <div class="developer-title">🛠️ Painel Developer</div>
+            <button class="developer-btn" onclick="abrirModalLogs()">📋 Ver Logs do Site</button>
+            <button class="developer-btn danger" onclick="abrirModalBanir()">🚫 Banir / Desbanir</button>
+        </div>
+
+        <button class="new-chat-btn" onclick="createNewChat()">+ Novo Estudo</button>
+    </div>
+    
+    <div id="chat-list"></div>
+
+    <div class="sidebar-footer-buttons">
+        <button class="terminal-toggle-btn" onclick="toggleTerminalMode()">>_ Modo Terminal</button>
+        <button id="or-key-btn" class="terminal-toggle-btn" onclick="toggleApiKey()" style="background: #475569; font-weight: bold;"></button>
+        <button id="hf-key-btn" class="terminal-toggle-btn" onclick="toggleHfApiKey()" style="background: #0284c7; font-weight: bold;"></button>
+        <div style="display: flex; gap: 6px;">
+            <a href="blazeria.apk" download="BlazerIA.apk" style="background: #22c55e; color: white; text-decoration: none; padding: 6px; border-radius: 6px; flex: 1; display: block; text-align: center; font-weight: bold; font-size: 0.75rem; border: 1px solid #16a34a;">📥 APK App</a>
+            <a href="https://blazerpingtest.davirediske.workers.dev" target="_blank" style="background: #8b5cf6; color: white; text-decoration: none; padding: 6px; border-radius: 6px; flex: 1; display: block; text-align: center; font-weight: bold; font-size: 0.75rem; border: 1px solid #7c3aed;">⚡ PingTest</a>
+        </div>
+    </div>
+</div>
+
+<div id="main">
+    <header>
+        <div class="header-left">
+            <button class="menu-btn" onclick="toggleMenu(true)">☰</button>
+            <span id="chat-title">BlazerIA</span>
+        </div>
+        <select id="model-select" class="select-style">
+            <option value="fusion">🌀 Blazer Fusion ✨ (Comitê de IAs)</option>
+            <option value="nvidia-fusion">🌌 Blazer Fusion NVIDIA (Fila Assíncrona)</option>
+
+            <!-- SEU HUGGING FACE SPACE COM QWEN -->
+            <optgroup label="🐍 Seu Próprio Servidor de IA">
+                <option value="hf-space-local">Hugging Face Space (Qwen2.5-1.5B-Instruct Local)</option>
+            </optgroup>
+
+            <optgroup label="🌟 OpenRouter (Comerciais/Free)">
+                <option value="nousresearch/hermes-3-llama-3.1-405b:free">Hermes Agent 405B (Texto)</option>
+                <option value="rkailev/owl-alpha:free">Owl Alpha (Texto)</option>
+                <option value="nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free">Nemotron 3 Omni (Foto/Vídeo/Áudio/Texto)</option>
+                <option value="openai/gpt-oss-120b:free">GPT-OSS 120B (Texto)</option>
+                <option value="nvidia/nemotron-3-super-120b-a12b:free">NVIDIA Nemotron 3 Super (Texto)</option>
+                <option value="google/gemma-4-31b-it:free">Gemma 4 31B (Texto/Vídeo/Foto)</option>
+                <option value="z-ai/glm-4.5-air:free">GLM 4.5 Air (Texto)</option>
+                <option value="moonshotai/kimi-k2.6:free">Kimi K2.6 (Texto/Foto)</option>
+                <option value="nvidia/nemotron-3-ultra-550b-a55b:free">NVIDIA Nemotron 3 Ultra 550B a 55B (Texto)</option>
+                <option value="poolside/laguna-m.1:free">Poolside: Laguna M.1 (Texto)</option>
+                <option value="poolside/laguna-xs.2:free">Poolside: Laguna XS.2 (Texto)</option>
+                <option value="nex-agi/nex-n2-pro:free">Nex-N2-Pro (Texto)</option>
+                <option value="openrouter/free">Aleatório Automático Gratuito</option>
+            </optgroup>
+
+            <optgroup label="⚡ Groq LPU (Velocidade Extrema)">
+                <option value="groq/llama-3.1-8b-instant">Groq: Llama 3.1 8B (Instantâneo)</option>
+            </optgroup>
+
+            <optgroup label="🟢 NVIDIA NIM (Performance Pura)">
+                <option value="nvidia-direct/nvidia/llama-3-nemotron-70b-instruct">NVIDIA: Llama 3 Nemotron 70B (Direto)</option>
+                <option value="nvidia-direct/z-ai/glm-5.1">NVIDIA: GLM 5.1 (Direto)</option>
+                <option value="nvidia-direct/meta/llama-3.2-90b-vision-instruct">NVIDIA: Llama 3.2 90B Vision (Direto)</option>
+                <option value="nvidia-direct/moonshotai/kimi-k2.6">NVIDIA: Kimi K2.6 (Direto)</option>
+                <option value="nvidia-direct/deepseek-ai/deepseek-v4-flash">NVIDIA: DeepSeek V4 Flash (Direto)</option>
+            </optgroup>
+
+            <optgroup label="🤗 Hugging Face (Serverless)">
+                <option value="hf/deepseek-ai/DeepSeek-V4-Flash">DeepSeek V4 flash</option>
+                <option value="hf/Qwen/Qwen3.6-35B-A3B">Qwen3.6 35B</option>
+                <option value="hf/meta-llama/Llama-3.1-8B-Instruct">Llama 3.1 8B Instruct</option>
+                <option value="hf/Qwen/Qwen3-Coder-Next">Qwen3-Coder-Next</option>
+                <option value="hf/google/gemma-4-31B-it">Gemma 4 31B</option>
+                <option value="hf/nex-agi/Nex-N2-Pro">Nex-N2-Pro</option>
+            </optgroup>
+        </select>
+        <select id="fusion-power-select" style="display:none; margin-left:10px;">
+            <option value="low">⚡ Baixo Raciocínio (Rápido)</option>
+            <option value="medium" selected>⚖️ Médio Raciocínio (Balanceado)</option>
+            <option value="high">🧠 Alto Raciocínio (Profundo)</option>
+        </select>
+    </header>
+    
+    <!-- TELA DE BOAS-VINDAS COM SAUDAÇÕES DINÂMICAS -->
+    <div id="welcome-container" class="empty-state">
+        <h2 id="welcome-message" style="font-size: 2.2rem; color: #fff; margin-bottom: 12px; font-weight: 700;">Olá!</h2>
+        <p id="welcome-subtext" style="color: var(--text-dim); font-size: 1.1rem; max-width: 550px; margin: 0 auto 15px; line-height: 1.5; text-align: center;">Como posso te ajudar hoje?</p>
+        <div class="suggestion-cards">
+            <div class="sugg-card" onclick="autoPreencherMensagem('📝 Extraia os 5 pontos mais importantes e crie um resumo do texto que vou enviar a seguir:')">
+                <div class="sugg-icon">📝</div>
+                <div>
+                    <strong>Resumir Textos</strong>
+                    <p style="font-size:0.8rem; margin-top:5px; color:var(--text-dim);">Crie tópicos rápidos e eficientes.</p>
+                </div>
+            </div>
+            <div class="sugg-card" onclick="autoPreencherMensagem('💻 Escreva um código em Python bem comentado para criar um jogo de adivinhar números.')">
+                <div class="sugg-icon">💻</div>
+                <div>
+                    <strong>Gerar Códigos</strong>
+                    <p style="font-size:0.8rem; margin-top:5px; color:var(--text-dim);">Programe em Python, JS e mais.</p>
+                </div>
+            </div>
+            <div class="sugg-card" onclick="autoPreencherMensagem('🧠 Explique a Teoria da Relatividade de forma simples, como se eu tivesse 10 anos de idade.')">
+                <div class="sugg-icon">🧠</div>
+                <div>
+                    <strong>Explicar Conceitos</strong>
+                    <p style="font-size:0.8rem; margin-top:5px; color:var(--text-dim);">Simplifique assuntos complexos.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTAINER DE MENSAGENS -->
+    <div id="chat-container" style="display: none;"></div>
+    
+    <footer>
+        <div id="file-preview"></div>
+        <div id="typing" style="display:none; color: var(--accent); font-size: 0.8rem; font-weight: bold; padding: 6px; border-left: 3px solid var(--accent); background: rgba(59, 130, 246, 0.1); border-radius: 6px; margin: 0 auto; max-width: 900px;">Processando resposta...</div>
+        
+        <div id="turnstile-wrapper">
+            <span id="turnstile-status-text" style="font-size: 0.75rem; color: var(--text-dim);">Conectando proteção Cloudflare...</span>
+            <div id="turnstile-container"></div>
+            <div id="adblock-banner" class="adblock-warning">
+                🔒 <strong>Verificação de Segurança Incompleta</strong><br>
+                Não conseguimos carregar o script da Cloudflare. Se o chat apresentar falhas e você usar extensões rígidas de privacidade ou bloqueadores de scripts, considere desativá-los momentaneamente para esta página.
+            </div>
+        </div>
+
+        <div class="input-row">
+            <label for="file-input" class="attach-btn" title="Anexar Arquivo">📎</label>
+            <input type="file" id="file-input" style="display: none;" accept="image/*, text/plain, .md">
+            <textarea id="user-input" placeholder="Envie uma mensagem ou anexe arquivos ao BlazerIA..." rows="1"></textarea>
+            <button class="send-btn" id="send-btn" onclick="handleSend()">➔</button>
+        </div>
+    </footer>
+    
+    <!-- RODAPÉ DE PRIVACIDADE -->
+    <div class="site-footer">
+        © 2026 BlazerIA | Hospedado de forma segura na Cloudflare • <a onclick="abrirModal('privacyModal')">Política de Privacidade e Termos de Uso</a>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- JANELAS MODAIS (BEM-VINDO, PRIVACIDADE, LOGS E BAN) -->
+<!-- ========================================== -->
+
+<!-- MODAL DE BOAS-VINDAS -->
+<div id="welcomeModal" class="custom-modal-bg">
+    <div class="custom-modal-content" style="text-align: center;">
+        <h2 style="color: #3b82f6; font-size: 1.8rem; margin-bottom: 10px;">🚀 Bem-vindo ao BlazerIA!</h2>
+        <p style="font-size: 1.05rem; margin-bottom: 25px;">O seu novo ecossistema inteligente de estudos, gratuito e ultrarrápido.</p>
+        
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: left; margin-bottom: 25px;">
+            <p><strong>✨ Múltiplas IAs:</strong> Acesse Nvidia, Llama, Qwen e até mesmo o seu próprio Space Python!</p>
+            <p><strong>🔒 Foco em Privacidade:</strong> Sem anúncios e com proteção rigorosa dos seus dados.</p>
+            <p><strong>🌀 Modo Fusion:</strong> Ative para que várias IAs pensem juntas na sua resposta!</p>
+        </div>
+        
+        <button class="local-auth-btn primary" style="font-size: 1.1rem; padding: 12px 30px; display: inline-block;" onclick="fecharModalBoasVindas()">Começar a Usar</button>
+    </div>
+</div>
+
+<!-- MODAL DE PRIVACIDADE E TERMOS -->
+<div id="privacyModal" class="custom-modal-bg">
+    <div class="custom-modal-content">
+        <h3>Política de Privacidade e Termos de Uso</h3>
+        <p><em>Última atualização: Junho de 2026</em></p>
+        
+        <h4>1. Armazenamento e Proteção de Dados</h4>
+        <p>O BlazerIA valoriza intensamente a sua privacidade. Suas mensagens executadas localmente são salvas apenas no cache do seu próprio navegador (LocalStorage). Caso opte por criar uma conta de login local, seus dados e o histórico de conversas são armazenados de forma criptografada e segura em nosso banco de dados em nuvem operado pela Cloudflare (D1 Database).</p>
+        
+        <h4>2. Conexão com Modelos de Inteligência Artificial</h4>
+        <p>O nosso site funciona como uma interface limpa e integradora. Suas mensagens são enviadas, através de conexões oficiais (APIs), para os servidores globais de provedores de IA (como OpenRouter, Hugging Face ou seu Space independente) que as processam e devolvem a resposta. Não vendemos, inspecionamos ou utilizamos suas informações para criar perfis de anúncios publicitários.</p>
+        
+        <h4>3. Proteção e Prevenção contra Abusos</h4>
+        <p>Para garantir que o serviço permaneça rápido e acessível gratuitamente para todos os estudantes, utilizamos o sistema <strong>Cloudflare Turnstile</strong> na página principal. Este script analisa padrões básicos de acesso exclusivamente para distinguir humanos de robôs (bots) automatizados que tentam esgotar nossas cotas de processamento.</p>
+        
+        <h4>4. Responsabilidade de Uso</h4>
+        <p>O BlazerIA foi criado como uma ferramenta acadêmica e de desenvolvimento. Ao utilizá-lo, o usuário concorda em fazer um uso ético da ferramenta, não exigindo a geração de conteúdos abusivos, ilegais ou que infrinjam diretrizes de segurança globais dos modelos operados.</p>
+        
+        <button class="close-modal-btn" onclick="fecharModal('privacyModal')">Estou Ciente</button>
+        <div style="clear:both;"></div>
+    </div>
+</div>
+
+<!-- MODAL VISUALIZADOR DE LOGS DO SISTEMA -->
+<div id="logsModal" class="custom-modal-bg">
+    <div class="custom-modal-content" style="max-width: 750px; width: 95%;">
+        <h3 style="color: #60a5fa; border-color: rgba(59, 130, 246, 0.3);">📋 Logs de Segurança do Sistema (Últimos 100)</h3>
+        
+        <div style="text-align: right; margin-bottom: 8px;">
+            <button class="developer-btn" style="width: auto; padding: 6px 14px; background: #1e293b; border: 1px solid var(--border);" onclick="carregarLogsKV()">🔄 Atualizar Logs</button>
+        </div>
+
+        <div class="logs-table-container">
+            <table class="logs-table">
+                <thead>
+                    <tr>
+                        <th style="width: 150px;">Horário (BR)</th>
+                        <th style="width: 200px;">Usuário</th>
+                        <th style="width: 130px;">Ação</th>
+                        <th>Detalhamento Técnico</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-table-body">
+                    <tr><td colspan="4" style="text-align: center; color: var(--text-dim);">Carregando registros...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <button class="close-modal-btn" onclick="fecharModal('logsModal')">Fechar Logs</button>
+        <div style="clear:both;"></div>
+    </div>
+</div>
+
+<!-- MODAL GERENCIADOR DE BANIMENTOS -->
+<div id="banModal" class="custom-modal-bg">
+    <div class="custom-modal-content" style="max-width: 480px;">
+        <h3 style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">🚫 Central de Banimentos de Segurança</h3>
+        <p style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 15px;">Bloqueie ou libere e-mails de estudantes instantaneamente em todo o ecossistema.</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div>
+                <label style="font-size: 0.75rem; font-weight: bold; color: var(--text-dim); display: block; margin-bottom: 4px;">E-mail do Alvo:</label>
+                <input type="email" id="ban-email-input" class="local-auth-input" placeholder="exemplo@gmail.com" style="margin-bottom: 0;">
+            </div>
+
+            <div>
+                <label style="font-size: 0.75rem; font-weight: bold; color: var(--text-dim); display: block; margin-bottom: 4px;">Motivo Personalizado do Bloqueio:</label>
+                <textarea id="ban-reason-input" class="local-auth-input" placeholder="Ex: Compartilhamento de dados indevidos ou spam nas APIs públicas." style="min-height: 80px; max-height: 120px; font-size: 0.85rem; padding: 8px; margin-bottom: 0;"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+                <button class="developer-btn danger" style="flex: 1; padding: 10px;" onclick="enviarOrdemBanimento(true)">🚫 Banir Usuário</button>
+                <button class="developer-btn" style="flex: 1; padding: 10px; background: #22c55e;" onclick="enviarOrdemBanimento(false)">🟢 Desbanir</button>
+            </div>
+        </div>
+
+        <button class="close-modal-btn" style="background: #1e293b; border: 1px solid var(--border); color: white;" onclick="fecharModal('banModal')">Fechar</button>
+        <div style="clear:both;"></div>
+    </div>
+</div>
+
+<script>
+    const WORKER_URL = "https://blazeria.davirediske.workers.dev";
+    const GOOGLE_CLIENT_ID = "632093910027-68iiou8erp58fh95col61m0o58vuj0ag.apps.googleusercontent.com";
+
+    // Emails autorizados a ver as opções do painel de administração
+    const ADMIN_EMAILS = [
+        "davirediske@gmail.com",
+        "blazeriaconfirmacaodecodigo@gmail.com",
+        "davi-rdoliveira5@estudante.rs.gov.br"
+    ];
+
+    let chats = [];
+    let currentId = null;
+    let turnstileToken = null;
+    let tokenSessaoAtiva = localStorage.getItem('blazeria_session_token') || null;
+    let modoCadastroLocal = false;
+    let googleButtonRendered = false;
+    let emailPendente = "";
+    
+    // Suporta anexo tanto de imagem quanto de documentos (.txt / .md)
+    let currentAttachment = null;
+
+    // Banco de frases dinâmicas para a tela inicial
+    const frasesInspiradoras = [
+        "Preparado para desvendar novos conhecimentos hoje?",
+        "Que tal darmos uma revisada dinâmica em suas matérias acumuladas?",
+        "Estou pronto para analisar códigos complexos, resumos e dados acadêmicos com você.",
+        "O que vamos construir ou descobrir de novo nesta sessão?",
+        "Lembre-se: todo grande projeto começa respondendo pequenas dúvidas."
+    ];
+
+    window.onload = function () {
+        verificarEstadoSessao();
+        atualizarLabelsBotoesApi();
+        verificarTelaBoasVindas();
+    };
+
+    function verificarTelaBoasVindas() {
+        if (!localStorage.getItem('blazeria_welcomed')) {
+            abrirModal('welcomeModal');
+        }
+    }
+
+    function fecharModalBoasVindas() {
+        localStorage.setItem('blazeria_welcomed', 'true');
+        fecharModal('welcomeModal');
+    }
+
+    function abrirModal(id) { 
+        document.getElementById(id).style.display = 'flex'; 
+    }
+
+    function fecharModal(id) { 
+        document.getElementById(id).style.display = 'none'; 
+    }
+
+    window.onclick = function(event) {
+        if (event.target.classList.contains('custom-modal-bg')) { 
+            event.target.style.display = 'none'; 
+        }
+    }
+
+    function autoPreencherMensagem(texto) {
+        const input = document.getElementById('user-input');
+        input.value = texto;
+        input.focus();
+    }
+
+    function showToast(mensagem, tipo = 'info') {
+        const container = document.getElementById('custom-toast-container');
+        const toast = document.createElement('div');
+        toast.className = `custom-toast ${tipo}`;
+        let emoji = tipo === 'success' ? "✅" : (tipo === 'error' ? "❌" : (tipo === 'warning' ? "⚠️" : "ℹ️"));
+        toast.innerHTML = `<span>${emoji}</span><span>${mensagem}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 50);
+        setTimeout(() => { 
+            toast.classList.remove('show'); 
+            setTimeout(() => toast.remove(), 300); 
+        }, 4000);
+    }
+
+    function inicializarGoogleButton() {
+        if (typeof google !== 'undefined' && GOOGLE_CLIENT_ID && !googleButtonRendered) {
+            try {
+                google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleCredentialResponse });
+                google.accounts.id.renderButton(document.getElementById("buttonDiv"), { theme: "filled_blue", size: "large", type: "standard", width: 240 });
+                googleButtonRendered = true;
+            } catch (err) { 
+                console.error("Falha ao desenhar botão do Google:", err); 
+            }
+        }
+    }
+
+    function toggleAuthAccordion() {
+        const accordion = document.getElementById('auth-accordion-container');
+        const arrow = document.getElementById('accordion-arrow');
+        const isActive = accordion.classList.contains('active');
+        if (isActive) { 
+            accordion.classList.remove('active'); 
+            arrow.innerText = '▼'; 
+        } else { 
+            accordion.classList.add('active'); 
+            arrow.innerText = '▲'; 
+            setTimeout(inicializarGoogleButton, 50); 
+        }
+    }
+
+    function toggleModoLocal() {
+        modoCadastroLocal = !modoCadastroLocal;
+        document.getElementById('local-nome-input').style.display = modoCadastroLocal ? 'block' : 'none';
+        document.getElementById('local-action-btn').innerText = modoCadastroLocal ? 'Cadastrar' : 'Entrar';
+        document.getElementById('local-toggle-btn').innerText = modoCadastroLocal ? 'Fazer Login' : 'Criar Conta';
+    }
+
+    async function executarLoginLocal() {
+        const email = document.getElementById('local-email-input').value.trim();
+        const password = document.getElementById('local-senha-input').value;
+        const nome = document.getElementById('local-nome-input').value.trim();
+
+        if (!email || !password || (modoCadastroLocal && !nome)) {
+            return showToast("Preencha todos os campos obrigatórios.", "warning");
+        }
+
+        const endpoint = modoCadastroLocal ? "/auth/register-local" : "/auth/login-local";
+        const bodyPayload = { email, password };
+        if (modoCadastroLocal) bodyPayload.nome = nome;
+
+        try {
+            document.getElementById('turnstile-status-text').innerText = modoCadastroLocal ? "Gerando código e enviando e-mail..." : "Entrando...";
+            document.getElementById('turnstile-status-text').style.display = 'block';
+
+            const res = await fetch(`${WORKER_URL}${endpoint}`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(bodyPayload) 
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Erro de login/cadastro.");
+
+            if (data.requiresVerification) {
+                emailPendente = data.email;
+                document.getElementById('local-auth-main').style.display = 'none';
+                document.getElementById('local-verify-container').style.display = 'block';
+                showToast("E-mail enviado! Digite o código de 6 dígitos para liberar a sua conta.", "success");
+                document.getElementById('turnstile-status-text').style.display = 'none';
+                return;
+            }
+
+            if (data.success) {
+                localStorage.setItem('blazeria_session_token', data.tokenSessao); 
+                localStorage.setItem('blazeria_user_name', data.usuario.nome); 
+                localStorage.setItem('blazeria_user_email', data.usuario.email);
+                tokenSessaoAtiva = data.tokenSessao; 
+                verificarEstadoSessao();
+                document.getElementById('turnstile-status-text').style.display = 'none';
+                document.getElementById('local-email-input').value = ""; 
+                document.getElementById('local-senha-input').value = ""; 
+                document.getElementById('local-nome-input').value = "";
+                showToast("Sessão iniciada com sucesso via login local!", "success");
+            }
+        } catch (e) { 
+            showToast(e.message, "error"); 
+            document.getElementById('turnstile-status-text').style.display = 'none'; 
+        }
+    }
+
+    async function verificarCodigoRegistro() {
+        const codigo = document.getElementById('local-codigo-input').value.trim();
+        if (codigo.length < 6) return showToast("Digite os 6 números do código.", "warning");
+
+        try {
+            document.getElementById('turnstile-status-text').innerText = "Validando código..."; 
+            document.getElementById('turnstile-status-text').style.display = 'block';
+            const res = await fetch(`${WORKER_URL}/auth/verify-code`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ email: emailPendente, codigo }) 
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Erro ao verificar código.");
+            
+            localStorage.setItem('blazeria_session_token', data.tokenSessao); 
+            localStorage.setItem('blazeria_user_name', data.usuario.nome); 
+            localStorage.setItem('blazeria_user_email', data.usuario.email);
+            tokenSessaoAtiva = data.tokenSessao; 
+            verificarEstadoSessao();
+            document.getElementById('turnstile-status-text').style.display = 'none';
+            document.getElementById('local-email-input').value = ""; 
+            document.getElementById('local-senha-input').value = ""; 
+            document.getElementById('local-nome-input').value = "";
+            cancelarVerificacao(); 
+            showToast("Conta criada e verificada com sucesso!", "success");
+        } catch (e) { 
+            showToast(e.message, "error"); 
+            document.getElementById('turnstile-status-text').style.display = 'none'; 
+        }
+    }
+
+    function cancelarVerificacao() { 
+        document.getElementById('local-verify-container').style.display = 'none'; 
+        document.getElementById('local-auth-main').style.display = 'block'; 
+        document.getElementById('local-codigo-input').value = ""; 
+    }
+
+    async function handleCredentialResponse(response) {
+        try {
+            document.getElementById('turnstile-status-text').innerText = "Autenticando sessão na Nuvem..."; 
+            document.getElementById('turnstile-status-text').style.display = 'block';
+            const res = await fetch(`${WORKER_URL}/auth/google`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ credential: response.credential }) 
+            });
+            if (!res.ok) throw new Error("Falha ao conectar com banco de dados D1.");
+            const data = await res.json();
+            if (data.success) {
+                localStorage.setItem('blazeria_session_token', data.tokenSessao); 
+                localStorage.setItem('blazeria_user_name', data.usuario.nome); 
+                localStorage.setItem('blazeria_user_email', data.usuario.email);
+                tokenSessaoAtiva = data.tokenSessao; 
+                verificarEstadoSessao();
+                document.getElementById('turnstile-status-text').style.display = 'none'; 
+                showToast("Login com o Google autenticado com sucesso!", "success");
+            }
+        } catch (e) { 
+            showToast("Erro no login Google: " + e.message, "error"); 
+        }
+    }
+
+    function verificarEstadoSessao() {
+        const loginWrapper = document.getElementById('google-login-wrapper'); 
+        const profileBox = document.getElementById('user-profile');
+        if (tokenSessaoAtiva) {
+            if(loginWrapper) loginWrapper.style.display = 'none';
+            profileBox.style.display = 'flex';
+            
+            const emailAtivo = localStorage.getItem('blazeria_user_email') || "";
+            const nomeUsuario = localStorage.getItem('blazeria_user_name') || "Estudante";
+            document.getElementById('user-display-name').innerText = nomeUsuario;
+            document.getElementById('user-display-email').innerText = emailAtivo;
+            document.getElementById('chat-title').innerText = "Sincronizando...";
+            
+            // Ativa saudações inteligentes personalizadas baseadas no horário
+            atualizarFraseInicialDinamica(nomeUsuario);
+
+            // Exibe painel administrativo de segurança caso o usuário ativo seja desenvolvedor
+            if (ADMIN_EMAILS.includes(emailAtivo.toLowerCase())) {
+                document.getElementById('dev-sidebar-panel').style.display = 'flex';
+            } else {
+                document.getElementById('dev-sidebar-panel').style.display = 'none';
+            }
+
+            carregarChatsDoServidor();
+        } else {
+            if(loginWrapper) loginWrapper.style.display = 'flex';
+            profileBox.style.display = 'none';
+            document.getElementById('dev-sidebar-panel').style.display = 'none';
+
+            chats = JSON.parse(localStorage.getItem('blazeria_chats')) || [];
+            if (chats.length === 0) createNewChat(); else switchChat(chats[chats.length - 1].id);
+            inicializarGoogleButton();
+        }
+    }
+
+    // Gerador de Saudações Dinâmicas por Período de Horário
+    function atualizarFraseInicialDinamica(nomeUsuario) {
+        const horaAtual = new Date().getHours();
+        let saudacaoPeriodo = "Olá";
+
+        if (horaAtual >= 5 && horaAtual < 12) {
+            saudacaoPeriodo = "Bom dia";
+        } else if (horaAtual >= 12 && horaAtual < 18) {
+            saudacaoPeriodo = "Boa tarde";
+        } else {
+            saudacaoPeriodo = "Boa noite";
+        }
+
+        const fraseAleatoria = frasesInspiradoras[Math.floor(Math.random() * frasesInspiradoras.length)];
+
+        document.getElementById('welcome-message').innerText = `${saudacaoPeriodo}, ${nomeUsuario}!`;
+        document.getElementById('welcome-subtext').innerText = `Tem algo em mente hoje? ${fraseAleatoria}`;
+    }
+
+    function executarLogout() {
+        localStorage.removeItem('blazeria_session_token'); 
+        localStorage.removeItem('blazeria_user_name'); 
+        localStorage.removeItem('blazeria_user_email');
+        tokenSessaoAtiva = null; 
+        window.location.reload();
+    }
+
+    async function carregarChatsDoServidor() {
+        if (!tokenSessaoAtiva) return;
+        try {
+            const res = await fetch(`${WORKER_URL}/get-chats`, { 
+                headers: { 'Authorization': `Bearer ${tokenSessaoAtiva}` } 
+            });
+            if (res.ok) {
+                chats = await res.json();
+                if (chats.length === 0) createNewChat(); else switchChat(chats[chats.length - 1].id);
+            } else if (res.status === 401) { 
+                executarLogout(); 
+            }
+        } catch (e) { 
+            document.getElementById('chat-title').innerText = "Modo Offline (Erro D1)"; 
+        }
+    }
+
+    function onTurnstileSuccess(token) { 
+        turnstileToken = token; 
+        document.getElementById('adblock-banner').style.display = 'none'; 
+        document.getElementById('turnstile-status-text').style.display = 'none'; 
+    }
+    
+    function onTurnstileError() { 
+        document.getElementById('turnstile-status-text').innerText = "⚠️ Erro no carregamento da proteção."; 
+    }
+    
+    function onTurnstileExpired() { 
+        turnstileToken = null; 
+        if(window.turnstile) window.turnstile.reset(); 
+    }
+
+    function atualizarLabelsBotoesApi() {
+        const orIndex = localStorage.getItem('blazeria_api_index') || '0'; 
+        const hfIndex = localStorage.getItem('blazeria_hf_api_index') || '0';
+        const orBtn = document.getElementById('or-key-btn'); 
+        const hfBtn = document.getElementById('hf-key-btn');
+        if(orBtn) orBtn.innerText = `🔑 OpenRouter: ${orIndex === '0' ? 'Principal' : 'Secundária'}`;
+        if(hfBtn) hfBtn.innerText = `🔑 Hugging Face: ${hfIndex === '0' ? 'Principal' : 'Secundária'}`;
+    }
+
+    function toggleApiKey() {
+        let newIndex = (localStorage.getItem('blazeria_api_index') || '0') === '0' ? '1' : '0';
+        localStorage.setItem('blazeria_api_index', newIndex); 
+        atualizarLabelsBotoesApi(); 
+        showToast(`API Key OpenRouter alterada para a conta ${newIndex === '0' ? 'Principal' : 'Secundária'}!`, "info");
+    }
+
+    function toggleHfApiKey() {
+        let newIndex = (localStorage.getItem('blazeria_hf_api_index') || '0') === '0' ? '1' : '0';
+        localStorage.setItem('blazeria_hf_api_index', newIndex); 
+        atualizarLabelsBotoesApi(); 
+        showToast(`API Key Hugging Face alterada para a conta ${newIndex === '0' ? 'Principal' : 'Secundária'}!`, "info");
+    }
+
+    function toggleTerminalMode() { 
+        document.body.classList.toggle('terminal-mode'); 
+        localStorage.setItem('blazeria_terminal_mode', document.body.classList.contains('terminal-mode')); 
+    }
+    if(localStorage.getItem('blazeria_terminal_mode') === 'true') document.body.classList.add('terminal-mode');
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => { 
+            const reader = new FileReader(); 
+            reader.readAsDataURL(file); 
+            reader.onload = () => resolve(reader.result); 
+            reader.onerror = error => reject(error); 
+        });
+    }
+
+    // Processador dinâmico de anexos (Imagens vs Arquivos de Texto para RAG)
+    document.getElementById('file-input').addEventListener('change', async function() {
+        const preview = document.getElementById('file-preview');
+        if (this.files.length > 0) {
+            const file = this.files[0];
+            preview.style.display = 'block'; 
+            preview.innerText = `[ANEXO]: ${file.name}`;
+            
+            try {
+                if (file.type.startsWith('image/')) {
+                    // Mídias são lidas via base64 para multimodalidade
+                    const base64Data = await fileToBase64(file);
+                    currentAttachment = { 
+                        type: 'image', 
+                        name: file.name, 
+                        data: base64Data 
+                    };
+                } else if (file.type === 'text/plain' || file.name.endsWith('.md')) {
+                    // Arquivos longos para busca semântica RAG são carregados diretamente como string de texto
+                    const reader = new FileReader();
+                    reader.readAsText(file, "UTF-8");
+                    reader.onload = function(evt) {
+                        currentAttachment = {
+                            type: 'text',
+                            name: file.name,
+                            data: evt.target.result
+                        };
+                    };
+                } else {
+                    throw new Error("Formato não aceito para processamento.");
+                }
+            } catch (e) {
+                showToast("Erro ao processar arquivo. Use apenas imagens ou textos (.txt, .md).", "error");
+                clearAttachment();
+            }
+        } else { 
+            clearAttachment();
+        }
+    });
+
+    function clearAttachment() {
+        currentAttachment = null;
+        document.getElementById('file-input').value = "";
+        document.getElementById('file-preview').style.display = 'none';
+        document.getElementById('file-preview').innerText = "";
+    }
+
+    function saveToStorage() { 
+        if (!tokenSessaoAtiva) localStorage.setItem('blazeria_chats', JSON.stringify(chats)); 
+    }
+
+    function createNewChat() {
+        const id = Date.now().toString(); 
+        chats.push({ id, title: "Novo Estudo", messages: [] });
+        saveToStorage(); 
+        switchChat(id); 
+        if (window.innerWidth < 768) toggleMenu(false);
+    }
+
+    function switchChat(id) {
+        currentId = id; 
+        const chat = chats.find(c => c.id === currentId);
+        if (chat) document.getElementById('chat-title').innerText = chat.title;
+        renderSidebar(); 
+        renderMessages();
+    }
+
+    async function deleteChat(id) {
+        if (!confirm("Tem certeza de que deseja apagar permanentemente este chat?")) return;
+        chats = chats.filter(c => c.id !== id);
+        if (tokenSessaoAtiva) { 
+            await fetch(`${WORKER_URL}/delete-chat`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tokenSessaoAtiva}` }, 
+                body: JSON.stringify({ chatId: id }) 
+            }); 
+        } else { 
+            saveToStorage(); 
+        }
+        if (chats.length === 0) createNewChat(); else switchChat(chats[chats.length - 1].id);
+    }
+
+    function renderSidebar() {
+        const list = document.getElementById('chat-list'); 
+        list.innerHTML = '';
+        chats.slice().reverse().forEach(c => {
+            const div = document.createElement('div'); 
+            div.className = `chat-item ${c.id === currentId ? 'active' : ''}`;
+            
+            const titleSpan = document.createElement('span'); 
+            titleSpan.className = 'chat-title-text'; 
+            titleSpan.innerText = c.title || "Conversa Sem Título";
+            titleSpan.onclick = () => { switchChat(c.id); if (window.innerWidth < 768) toggleMenu(false); };
+            
+            const deleteBtn = document.createElement('button'); 
+            deleteBtn.className = 'chat-delete-btn'; 
+            deleteBtn.innerHTML = '🗑️';
+            deleteBtn.onclick = (e) => { e.stopPropagation(); deleteChat(c.id); };
+            
+            div.appendChild(titleSpan); 
+            div.appendChild(deleteBtn); 
+            list.appendChild(div);
+        });
+    }
+
+    function renderMessages() {
+        const container = document.getElementById('chat-container');
+        const welcome = document.getElementById('welcome-container');
+        const chat = chats.find(c => c.id === currentId);
+        if(!chat) return;
+
+        if (chat.messages.length === 0) {
+            container.style.display = 'none';
+            welcome.style.display = 'flex';
+            
+            // Re-renderiza a saudação quando criar um chat vazio
+            const nomeUsuario = localStorage.getItem('blazeria_user_name') || "Estudante";
+            atualizarFraseInicialDinamica(nomeUsuario);
+            return;
+        } else {
+            welcome.style.display = 'none';
+            container.style.display = 'flex';
+        }
+        
+        container.innerHTML = '';
+        chat.messages.forEach(m => {
+            const div = document.createElement('div');
+            div.className = `msg ${m.role === 'user' ? 'user-msg' : 'bot-msg'}`;
+            
+            if (m.role === 'assistant') {
+                let textoProtegido = m.content;
+                const safeRegex = new RegExp('\\x60{3}(?:math|latex|tex|katex)\\n?([\\s\\S]*?)\\x60{3}', 'gi');
+                textoProtegido = textoProtegido.replace(safeRegex, '$1');
+                const mathBlocks = [];
+                
+                textoProtegido = textoProtegido.replace(/\\\[([\s\S]*?)\\\]/g, (match, math) => { mathBlocks.push({ text: math, display: true }); return `MATHBLOCKXYZ${mathBlocks.length - 1}XYZ`; });
+                textoProtegido = textoProtegido.replace(/\$$([\s\S]*?)\$\$/g, (match, math) => { mathBlocks.push({ text: math, display: true }); return `MATHBLOCKXYZ${mathBlocks.length - 1}XYZ`; });
+                textoProtegido = textoProtegido.replace(/\\\(([\s\S]*?)\\\)/g, (match, math) => { mathBlocks.push({ text: math, display: false }); return `MATHBLOCKXYZ${mathBlocks.length - 1}XYZ`; });
+                textoProtegido = textoProtegido.replace(/\$([^\$\n\t]+?)\$/g, (match, math) => { mathBlocks.push({ text: math, display: false }); return `MATHBLOCKXYZ${mathBlocks.length - 1}XYZ`; });
+
+                let htmlFormatado = marked.parse(textoProtegido);
+
+                mathBlocks.forEach((block, index) => {
+                    try {
+                        const renderedMath = katex.renderToString(block.text, { displayMode: block.display, throwOnError: false });
+                        htmlFormatado = htmlFormatado.replace(`MATHBLOCKXYZ${index}XYZ`, renderedMath);
+                    } catch (e) {
+                        const delimiter = block.display ? '$$' : '$'; 
+                        htmlFormatado = htmlFormatado.replace(`MATHBLOCKXYZ${index}XYZ`, `${delimiter}${block.text}${delimiter}`);
+                    }
+                });
+
+                div.innerHTML = htmlFormatado;
+
+                if (m.modelUsed) {
+                    const badge = document.createElement('div');
+                    badge.className = 'model-badge';
+                    badge.style.cssText = "font-size:0.75rem; color:var(--text-dim); margin-top:8px; border-top:1px solid var(--border); padding-top:5px; text-align:right;";
+                    badge.innerText = `⚡ Respondido por: ${m.modelUsed}`;
+                    div.appendChild(badge);
+                }
+            } else { 
+                if (typeof m.content === 'string') {
+                    div.innerText = m.content;
+                } else if (Array.isArray(m.content)) {
+                    let htmlContent = '';
+                    m.content.forEach(part => {
+                        if (part.type === 'text') htmlContent += part.text;
+                        if (part.type === 'image_url') htmlContent += `\n📎 [Mídia Anexada]`;
+                    });
+                    div.innerText = htmlContent || "Arquivo Multimídia Enviado";
+                } else {
+                    div.innerText = m.uiContent || "Arquivo Multimídia Enviado";
+                }
+            }
+            container.appendChild(div);
+        });
+
+        if (window.Prism) Prism.highlightAllUnder(container);
+        if (window.renderMathInElement) {
+            renderMathInElement(container, { delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}, {left: '\\(', right: '\\)', display: false}, {left: '\\[', right: '\\]', display: true}], ignoredTags: ["script", "noscript", "style", "textarea", "option"], throwOnError : false });
+        }
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // ENVIO E RECEBIMENTO HÍBRIDO TOTALMENTE OTIMIZADO PARA STREAMING DE TODOS OS MODELOS E RAG
+    async function handleSend() {
+        const input = document.getElementById('user-input');
+        const text = input.value.trim();
+        if (!text && !currentAttachment) return;
+
+        if (!currentId) {
+            currentId = Date.now().toString();
+        }
+
+        const chat = chats.find(c => c.id === currentId);
+        if (!chat) return;
+
+        let messageContent = text;
+        let messageContentForUI = text;
+        let documentoGiganteExtra = null;
+
+        if (currentAttachment) {
+            if (currentAttachment.type === 'image') {
+                messageContent = [
+                    { type: "text", text: text || "Analise este arquivo para mim, por favor." },
+                    { type: "image_url", image_url: { url: currentAttachment.data } }
+                ];
+                messageContentForUI = text 
+                    ? `${text}\n\n📎 *[Imagem Anexada: ${currentAttachment.name}]*`
+                    : `📎 *[Imagem Anexada: ${currentAttachment.name}]*`;
+            } else if (currentAttachment.type === 'text') {
+                // Se for documento longo, isolamos o texto puro para processar no pipeline de RAG
+                documentoGiganteExtra = currentAttachment.data;
+                messageContentForUI = text 
+                    ? `${text}\n\n📄 *[Documento Anexado: ${currentAttachment.name}]*`
+                    : `📄 *[Documento Anexado: ${currentAttachment.name}]*`;
+            }
+        }
+
+        chat.messages.push({ role: 'user', content: messageContent, uiContent: messageContentForUI });
+        
+        if (chat.title === "Novo Estudo" || chat.title === "Novo Chat") {
+            chat.title = text ? text.substring(0, 20) : "Análise";
+            document.getElementById('chat-title').innerText = chat.title;
+        }
+
+        input.value = '';
+        renderMessages();
+
+        chat.messages.push({ role: 'assistant', content: '...', typing: true });
+        renderMessages();
+
+        const chatContainer = document.getElementById('chat-container');
+        const welcome = document.getElementById('welcome-container');
+        
+        // Garante que o container de chat esteja visível durante a digitação
+        welcome.style.display = 'none';
+        chatContainer.style.display = 'flex';
+
+        const ultimoBalaoDiv = chatContainer.lastElementChild; 
+        const typingIndicator = document.getElementById('typing');
+        const modelSelect = document.getElementById('model-select').value;
+        const fusionPower = document.getElementById('fusion-power-select').value;
+        const finalModel = modelSelect === 'fusion' ? `fusion` : modelSelect;
+
+        if (typingIndicator) {
+            if (documentoGiganteExtra) {
+                typingIndicator.innerText = "📄 Lendo documento usando Inteligência Artificial...";
+            } else {
+                typingIndicator.innerText = (modelSelect === "fusion" || modelSelect === "nvidia-fusion") ? "🌀 Orquestrando comitê de IAs na Fila..." : "Processando resposta...";
+            }
+            typingIndicator.style.display = 'block';
+        }
+        document.getElementById('send-btn').disabled = true;
+
+        try {
+            const historyToSend = chat.messages.filter(m => !m.typing).map(m => ({
+                role: m.role,
+                content: m.content
+            }));
+
+            clearAttachment();
+            saveToStorage();
+
+            const payload = {
+                model: finalModel, 
+                messages: historyToSend,
+                turnstileToken: turnstileToken,
+                apiIndex: localStorage.getItem('blazeria_api_index') || '0', 
+                hfApiIndex: localStorage.getItem('blazeria_hf_api_index') || '0',
+                chatId: currentId,
+                fusionPower: fusionPower,
+                contextDocument: documentoGiganteExtra
+            };
+
+            turnstileToken = null; 
+            if (window.turnstile) window.turnstile.reset();
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (tokenSessaoAtiva) headers['Authorization'] = `Bearer ${tokenSessaoAtiva}`;
+
+            const res = await fetch(`${WORKER_URL}/api/chat`, { 
+                method: 'POST', 
+                headers: headers, 
+                body: JSON.stringify(payload) 
+            });
+            
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `Erro HTTP ${res.status}`);
+            }
+
+            const contentType = res.headers.get('Content-Type') || '';
+
+            if (contentType.includes('text/event-stream')) {
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let textoAcumulado = '';
+
+                typingIndicator.style.display = 'none';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const linhas = chunk.split('\n');
+
+                    for (const linha of linhas) {
+                        const trimmedLine = inline_split = linha.trim();
+                        if (!trimmedLine) continue;
+
+                        if (trimmedLine.startsWith('data: ')) {
+                            const dadosRaw = trimmedLine.slice(6).trim();
+                            if (dadosRaw === '[DONE]') break;
+
+                            try {
+                                const jsonParsed = JSON.parse(dadosRaw);
+                                if (jsonParsed.modelUsed) chat.messages[chat.messages.length - 1].modelUsed = jsonParsed.modelUsed;
+
+                                if (jsonParsed.response !== undefined) {
+                                    textoAcumulado += jsonParsed.response;
+                                    chat.messages[chat.messages.length - 1].content = textoAcumulado;
+                                    
+                                    if (ultimoBalaoDiv) {
+                                        ultimoBalaoDiv.innerHTML = marked.parse(textoAcumulado);
+                                        ultimoBalaoDiv.querySelectorAll('pre code').forEach((block) => Prism.highlightElement(block));
+                                        
+                                        const badge = document.createElement('div');
+                                        badge.className = 'model-badge';
+                                        badge.style.cssText = "font-size:0.75rem; color:var(--text-dim); margin-top:8px; border-top:1px solid var(--border); padding-top:5px; text-align:right;";
+                                        badge.innerText = `⚡ Respondido por: ${chat.messages[chat.messages.length - 1].modelUsed || "BlazerIA"}`;
+                                        ultimoBalaoDiv.appendChild(badge);
+                                    }
+                                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                                }
+                            } catch (e) {
+                                // Ignora fragmentos corrompidos do stream
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Fluxo estático para comitês
+                const data = await res.json();
+                typingIndicator.style.display = 'none';
+
+                if (data.status === "queued") {
+                    const jobId = data.jobId; 
+                    let tentativas = 0;
+                    const checkInterval = setInterval(async () => {
+                        try {
+                            const checkRes = await fetch(`${WORKER_URL}/api/job-status/${jobId}`);
+                            if (!checkRes.ok) { tentativas++; if (tentativas >= 5) throw new Error("Falhas de rede na fila."); return; }
+                            tentativas = 0; 
+                            const checkData = await checkRes.json();
+
+                            if (checkData.status === "processing") typingIndicator.innerText = `🌀 Modo Fusion: ${checkData.step}`;
+                            if (checkData.status === "completed") {
+                                clearInterval(checkInterval);
+                                chat.messages.pop();
+                                chat.messages.push({ role: 'assistant', content: checkData.error ? "⚠️ Erro: " + checkData.error : checkData.reply, modelUsed: checkData.modelUsed });
+                                saveToStorage(); 
+                                renderMessages(); 
+                                renderSidebar(); 
+                                typingIndicator.style.display = 'none'; 
+                                document.getElementById('send-btn').disabled = false;
+                            }
+                        } catch (e) { 
+                            clearInterval(checkInterval); 
+                            chat.messages.pop();
+                            chat.messages.push({ role: 'assistant', content: `⚠️ Erro de rede na fila: ${e.message}` }); 
+                            renderMessages(); 
+                            typingIndicator.style.display = 'none'; 
+                            document.getElementById('send-btn').disabled = false; 
+                        }
+                    }, 2500); 
+                    return;
+                }
+
+                chat.messages.pop();
+                if (data.error) {
+                    chat.messages.push({ role: 'assistant', content: `⚠️ **[ERRO]:**\n\n${data.error}` });
+                } else {
+                    chat.messages.push({ role: 'assistant', content: data.reply, modelUsed: data.modelUsed });
+                }
+                renderMessages();
+            }
+            
+            saveToStorage(); 
+            renderSidebar();
+            document.getElementById('send-btn').disabled = false;
+
+        } catch (e) {
+            if (chatContainer.contains(ultimoBalaoDiv)) chatContainer.removeChild(ultimoBalaoDiv);
+            chat.messages.pop();
+            chat.messages.push({ role: 'assistant', content: `[ERRO]: Falha na comunicação. Motivo: ${e.message}` });
+            saveToStorage();
+            renderMessages(); 
+            if (typingIndicator) typingIndicator.style.display = 'none'; 
+            document.getElementById('send-btn').disabled = false;
+        }
+    }
+
+    function abrirModalLogs() {
+        abrirModal('logsModal');
+        carregarLogsKV();
+    }
+
+    async function carregarLogsKV() {
+        const tbody = document.getElementById('logs-table-body');
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 20px;">🔄 Buscando logs ativos do KV...</td></tr>`;
+        
+        try {
+            const res = await fetch(`${WORKER_URL}/dev/logs`, {
+                headers: { 'Authorization': `Bearer ${tokenSessaoAtiva}` }
+            });
+            if (!res.ok) throw new Error(await res.text());
+            
+            const logs = await res.json();
+            tbody.innerHTML = '';
+            
+            if (logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-dim); padding: 20px;">Nenhum evento registrado no sistema ainda.</td></tr>`;
+                return;
+            }
+
+            logs.forEach(log => {
+                const tr = document.createElement('tr');
+                let badgeClass = "success";
+                if (log.acao.includes("FALHA") || log.acao.includes("BAN")) {
+                    badgeClass = "warning";
+                }
+
+                tr.innerHTML = `
+                    <td style="color: var(--text-dim);">${log.timestamp}</td>
+                    <td style="font-weight: bold; color: white;">${log.emailUsuario}</td>
+                    <td><span class="log-badge ${badgeClass}">${log.acao}</span></td>
+                    <td style="color: #cbd5e1;">${log.details || log.detalhe}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--danger); padding: 20px;">⚠️ Erro ao puxar logs: ${e.message}</td></tr>`;
+        }
+    }
+
+    function abrirModalBanir() {
+        document.getElementById('ban-email-input').value = '';
+        document.getElementById('ban-reason-input').value = '';
+        abrirModal('banModal');
+    }
+
+    async function enviarOrdemBanimento(banStatus) {
+        const targetEmail = document.getElementById('ban-email-input').value.trim();
+        const reason = document.getElementById('ban-reason-input').value.trim();
+
+        if (!targetEmail) {
+            showToast("Insira o e-mail do alvo.", "warning");
+            return;
+        }
+
+        if (banStatus && !reason) {
+            showToast("Insira o motivo do banimento para exibir ao usuário.", "warning");
+            return;
+        }
+
+        try {
+            const res = await fetch(`${WORKER_URL}/dev/ban`, {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${tokenSessaoAtiva}`
+                },
+                body: JSON.stringify({ targetEmail, reason, banStatus })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Erro ao processar banimento.");
+
+            showToast(data.message, "success");
+            fecharModal('banModal');
+        } catch (e) {
+            showToast(e.message, "error");
+        }
+    }
+
+    async function limparLogsKV() {
+        if (!confirm("Tem certeza que deseja apagar todos os logs de sistema salvos?")) return;
+        try {
+            const res = await fetch(`${WORKER_URL}/dev/clear-logs`, {
+                method: "POST",
+                headers: { 'Authorization': `Bearer ${tokenSessaoAtiva}` }
+            });
+            if (res.ok) showToast("Logs apagados com sucesso.");
+        } catch(e){}
+    }
+
+    function toggleMenu(show) { 
+        document.getElementById('sidebar').classList.toggle('active', show); 
+        document.getElementById('overlay').style.display = show ? 'block' : 'none'; 
+    }
+
+    document.getElementById('user-input').addEventListener('keydown', function(e) { 
+        if (e.key === 'Enter' && !e.shiftKey) { 
+            e.preventDefault(); 
+            handleSend(); 
+        } 
+    });
+
+    function updateFusionPowerVisibility() {
+        const modelSelect = document.getElementById('model-select');
+        const fusionPowerSelect = document.getElementById('fusion-power-select');
+        fusionPowerSelect.style.display = modelSelect.value === 'fusion' ? 'block' : 'none';
+    }
+    document.getElementById('model-select').addEventListener('change', updateFusionPowerVisibility);
+    updateFusionPowerVisibility();
+</script>
+</body>
+</html>
